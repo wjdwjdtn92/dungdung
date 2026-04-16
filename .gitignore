@@ -39,3 +39,18 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# supabase
+supabase/.temp/
+supabase/functions/.deploy
+
+# playwright
+/playwright-report/
+/test-results/
+/playwright/.cache/
+
+# sentry (auth token 포함될 수 있음)
+.sentryclirc
+
+# cesium (빌드 에셋 public 복사 시)
+/public/cesium/

@@ -1,0 +1,47 @@
+{
+  "common": {
+    "loading": "불러오는 중...",
+    "error": "오류가 발생했습니다",
+    "save": "저장",
+    "cancel": "취소",
+    "delete": "삭제",
+    "edit": "편집",
+    "share": "공유",
+    "close": "닫기"
+  },
+  "nav": {
+    "explore": "탐색",
+    "feed": "피드",
+    "map": "내 지도",
+    "trips": "여행",
+    "notifications": "알림",
+    "settings": "설정",
+    "login": "로그인",
+    "logout": "로그아웃"
+  },
+  "pin": {
+    "create": "핀 만들기",
+    "title": "제목",
+    "body": "일기 내용",
+    "visitedAt": "방문 날짜",
+    "placeName": "장소",
+    "visibility": "공개 범위",
+    "public": "전체 공개",
+    "friends": "친구 공개",
+    "private": "나만 보기",
+    "photos": "사진",
+    "tags": "태그"
+  },
+  "trip": {
+    "create": "여행 만들기",
+    "title": "여행 제목"
+  },
+  "auth": {
+    "loginWithGoogle": "Google로 로그인",
+    "loginDescription": "둥둥에 오신 걸 환영합니다"
+  },
+  "errors": {
+    "notFound": "찾을 수 없습니다",
+    "unauthorized": "접근 권한이 없습니다"
+  }
+}
