@@ -5,7 +5,9 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Plus, Menu, Settings, Bell } from 'lucide-react';
 import { DynamicGlobe } from '@/components/globe/DynamicGlobe';
+import { DynamicLeaflet } from '@/components/globe/DynamicLeaflet';
 import type { GlobePinMarker } from '@/components/globe/GlobeEngine';
+import { MapModeToggle, type MapMode } from '@/components/map/MapModeToggle';
 import { SidePanel, type PanelView } from '@/components/map/SidePanel';
 import { PanelTabs, type TabType } from '@/components/map/PanelTabs';
 import { PinListItem, type PinListData } from '@/components/map/PinListItem';
@@ -42,6 +44,7 @@ export function MapClient({
   const [panelView, setPanelView] = useState<PanelView>({ type: 'my-pins' });
   const [activeTab, setActiveTab] = useState<TabType>('my-pins');
   const [userPinMarkers, setUserPinMarkers] = useState<GlobePinMarker[] | null>(null);
+  const [mapMode, setMapMode] = useState<MapMode>('3d');
 
   // 현재 뷰에 따라 지도에 표시할 핀 결정
   const displayPins = (() => {
@@ -110,7 +113,11 @@ export function MapClient({
   return (
     <div className="fixed inset-0 bg-zinc-950 overflow-hidden">
       {/* 지도 */}
-      <DynamicGlobe pins={displayPins} onPinClick={handlePinClick} className="absolute inset-0" />
+      {mapMode === '3d' ? (
+        <DynamicGlobe pins={displayPins} onPinClick={handlePinClick} className="absolute inset-0" />
+      ) : (
+        <DynamicLeaflet pins={displayPins} onPinClick={handlePinClick} className="absolute inset-0" />
+      )}
 
       {/* 사이드패널 */}
       <SidePanel
@@ -158,6 +165,11 @@ export function MapClient({
           />
         )}
       </SidePanel>
+
+      {/* 3D/2D 토글 */}
+      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 sm:bottom-auto sm:top-4 sm:left-auto sm:right-1/2 sm:translate-x-1/2">
+        <MapModeToggle mode={mapMode} onChange={setMapMode} />
+      </div>
 
       {/* 상단 우측 컨트롤 */}
       <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
