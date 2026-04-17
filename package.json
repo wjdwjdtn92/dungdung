@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --hostname 0.0.0.0",
     "build": "node scripts/copy-cesium.mjs && next build",
     "copy-cesium": "node scripts/copy-cesium.mjs",
     "start": "next start",

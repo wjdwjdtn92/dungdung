@@ -61,10 +61,12 @@ export function SidePanel({ view, onClose, onBack, children }: SidePanelProps) {
         <div className="flex-1 overflow-y-auto">{children}</div>
       </div>
 
-      {/* 모바일 하단 시트 */}
+      {/* 모바일 하단 시트
+          absolute 사용: 부모가 fixed inset-0이므로 absolute = 뷰포트 기준.
+          fixed-in-fixed 구조는 iOS Safari에서 터치 이벤트 전달 버그를 유발함. */}
       <div
         className={cn(
-          'sm:hidden fixed left-0 right-0 bottom-0 z-20 bg-white rounded-t-2xl shadow-[0_-4px_20px_rgba(0,0,0,0.1)] transition-transform duration-300',
+          'sm:hidden absolute left-0 right-0 bottom-0 z-20 bg-white rounded-t-2xl shadow-[0_-4px_20px_rgba(0,0,0,0.1)] transition-transform duration-300',
           isOpen ? 'translate-y-0' : 'translate-y-full',
           mobileExpanded ? 'top-16' : 'top-[60%]',
         )}

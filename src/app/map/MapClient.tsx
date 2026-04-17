@@ -114,7 +114,7 @@ export function MapClient({
     panelView.type === 'feed' || panelView.type === 'explore' || panelView.type === 'my-pins';
 
   return (
-    <div className="fixed inset-0 bg-zinc-950 overflow-hidden">
+    <div className="fixed inset-0 bg-zinc-950">
       {/* 지도 */}
       {mapMode === '3d' ? (
         <DynamicGlobe pins={displayPins} onPinClick={handlePinClick} className="absolute inset-0" />

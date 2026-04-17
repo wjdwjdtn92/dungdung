@@ -32,16 +32,26 @@ export function LeafletMap({ pins = [], onPinClick, className }: LeafletMapProps
         shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
       });
 
-      const map = L.map(containerRef.current, {
-        center: [20, 0],
+      // tap: false — Leaflet 커스텀 탭 에뮬레이터 비활성화 (모바일 오버레이 UI 클릭 충돌 방지)
+      // @types/leaflet에 tap 옵션이 없어 타입 캐스팅 필요
+      const mapOptions = {
+        center: [20, 0] as L.LatLngExpression,
         zoom: 2,
+        minZoom: 2,        // 너무 축소하면 회색 영역 과다 노출 방지
         zoomControl: false,
-      });
+        worldCopyJump: true, // 지도 끝에서 반대편으로 자연스럽게 이어지도록
+        tap: false,
+      };
+      const map = L.map(containerRef.current, mapOptions as L.MapOptions);
 
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; OpenStreetMap contributors',
         maxZoom: 19,
+        noWrap: false, // 수평 방향 타일 반복 (기본값이지만 명시)
       }).addTo(map);
+
+      // 컨테이너 크기를 정확히 반영 — 비동기 마운트 후 사이즈 재계산
+      requestAnimationFrame(() => map.invalidateSize());
 
       // 줌 컨트롤 우측 하단
       L.control.zoom({ position: 'bottomright' }).addTo(map);

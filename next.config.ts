@@ -3,6 +3,8 @@ import path from 'path';
 import webpack from 'webpack';
 
 const nextConfig: NextConfig = {
+  // 로컬 네트워크에서 모바일 테스트용 — 개발 환경 전용
+  allowedDevOrigins: ['192.168.200.159'],
   turbopack: {
     root: path.resolve(__dirname),
   },
