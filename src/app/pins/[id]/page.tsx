@@ -1,25 +1,25 @@
-import { createClient } from '@/lib/supabase/server'
-import { notFound } from 'next/navigation'
-import Image from 'next/image'
-import { MapPin, Globe, Lock, Users } from 'lucide-react'
-import type { Metadata } from 'next'
-import { PinActions } from '@/components/pins/PinActions'
+import { createClient } from '@/lib/supabase/server';
+import { notFound } from 'next/navigation';
+import Image from 'next/image';
+import { MapPin, Globe, Lock, Users } from 'lucide-react';
+import type { Metadata } from 'next';
+import { PinActions } from '@/components/pins/PinActions';
 
 interface Props {
-  params: Promise<{ id: string }>
+  params: Promise<{ id: string }>;
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { id } = await params
-  const supabase = await createClient()
+  const { id } = await params;
+  const supabase = await createClient();
 
   const { data: pin } = await supabase
     .from('pins')
     .select('title, place_name, body')
     .eq('id', id)
-    .single()
+    .single();
 
-  if (!pin) return { title: '핀을 찾을 수 없습니다' }
+  if (!pin) return { title: '핀을 찾을 수 없습니다' };
 
   return {
     title: pin.title,
@@ -28,22 +28,28 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       title: pin.title,
       description: pin.body?.slice(0, 160) ?? `${pin.place_name}에서의 여행 기록`,
     },
-  }
+  };
 }
 
 const VISIBILITY_ICON = {
   public: <Globe className="h-3.5 w-3.5" />,
   friends: <Users className="h-3.5 w-3.5" />,
   private: <Lock className="h-3.5 w-3.5" />,
-} as const
+} as const;
 
-const VISIBILITY_LABEL = { public: '전체 공개', friends: '친구 공개', private: '나만 보기' } as const
+const VISIBILITY_LABEL = {
+  public: '전체 공개',
+  friends: '친구 공개',
+  private: '나만 보기',
+} as const;
 
 export default async function PinDetailPage({ params }: Props) {
-  const { id } = await params
-  const supabase = await createClient()
+  const { id } = await params;
+  const supabase = await createClient();
 
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   // 핀 + 작성자 + 사진 + 태그 병렬 조회 (server-parallel-fetching)
   const [{ data: pin, error: pinError }, { data: photos }, { data: pinTags }] = await Promise.all([
@@ -52,32 +58,29 @@ export default async function PinDetailPage({ params }: Props) {
       .select('*, users!pins_user_id_fkey(id, username, display_name, avatar_url)')
       .eq('id', id)
       .single(),
-    supabase
-      .from('pin_photos')
-      .select('*')
-      .eq('pin_id', id)
-      .order('order'),
-    supabase
-      .from('pin_tags')
-      .select('tags(name)')
-      .eq('pin_id', id),
-  ])
+    supabase.from('pin_photos').select('*').eq('pin_id', id).order('order'),
+    supabase.from('pin_tags').select('tags(name)').eq('pin_id', id),
+  ]);
 
-  if (pinError) console.error('[pin detail] query error:', pinError)
-  if (!pin) notFound()
+  if (pinError) console.error('[pin detail] query error:', pinError);
+  if (!pin) notFound();
 
-  const author = pin.users as { id: string; username: string; display_name: string; avatar_url: string | null } | null
-  const tags = pinTags?.flatMap((pt) => (pt.tags as { name: string } | null)?.name ?? []) ?? []
+  const author = pin.users as {
+    id: string;
+    username: string;
+    display_name: string;
+    avatar_url: string | null;
+  } | null;
+  const tags = pinTags?.flatMap((pt) => (pt.tags as { name: string } | null)?.name ?? []) ?? [];
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
   function photoUrl(path: string) {
-    return `${supabaseUrl}/storage/v1/object/public/pin-photos/${path}?width=800&quality=80`
+    return `${supabaseUrl}/storage/v1/object/public/pin-photos/${path}?width=800&quality=80`;
   }
 
   return (
     <div className="min-h-screen bg-zinc-50">
       <div className="mx-auto max-w-2xl px-4 py-8 space-y-6">
-
         {/* 사진 */}
         {photos && photos.length > 0 && (
           <div className="rounded-2xl overflow-hidden">
@@ -128,7 +131,10 @@ export default async function PinDetailPage({ params }: Props) {
           {tags.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
               {tags.map((tag) => (
-                <span key={tag} className="rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs text-zinc-600">
+                <span
+                  key={tag}
+                  className="rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs text-zinc-600"
+                >
                   #{tag}
                 </span>
               ))}
@@ -156,5 +162,5 @@ export default async function PinDetailPage({ params }: Props) {
         )}
       </div>
     </div>
-  )
+  );
 }

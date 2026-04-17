@@ -1,37 +1,37 @@
-'use client'
+'use client';
 
-import { useState, type KeyboardEvent } from 'react'
-import { X } from 'lucide-react'
-import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
+import { useState, type KeyboardEvent } from 'react';
+import { X } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 
 interface Props {
-  value: string[]
-  onChange: (tags: string[]) => void
-  maxTags?: number
+  value: string[];
+  onChange: (tags: string[]) => void;
+  maxTags?: number;
 }
 
 export function TagInput({ value, onChange, maxTags = 10 }: Props) {
-  const [input, setInput] = useState('')
+  const [input, setInput] = useState('');
 
   function addTag(raw: string) {
-    const tag = raw.toLowerCase().trim().replace(/\s+/g, '')
-    if (!tag || value.includes(tag) || value.length >= maxTags) return
-    onChange([...value, tag])
-    setInput('')
+    const tag = raw.toLowerCase().trim().replace(/\s+/g, '');
+    if (!tag || value.includes(tag) || value.length >= maxTags) return;
+    onChange([...value, tag]);
+    setInput('');
   }
 
   function removeTag(tag: string) {
-    onChange(value.filter((t) => t !== tag))
+    onChange(value.filter((t) => t !== tag));
   }
 
   function handleKeyDown(e: KeyboardEvent<HTMLInputElement>) {
     if (e.key === 'Enter' || e.key === ',') {
-      e.preventDefault()
-      addTag(input)
+      e.preventDefault();
+      addTag(input);
     }
     if (e.key === 'Backspace' && !input && value.length > 0) {
-      removeTag(value[value.length - 1])
+      removeTag(value[value.length - 1]);
     }
   }
 
@@ -58,5 +58,5 @@ export function TagInput({ value, onChange, maxTags = 10 }: Props) {
         />
       )}
     </div>
-  )
+  );
 }

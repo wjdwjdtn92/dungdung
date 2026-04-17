@@ -1,89 +1,94 @@
-'use client'
+'use client';
 
-import { useCallback, useState } from 'react'
-import { ImagePlus, X, Loader2 } from 'lucide-react'
-import { cn } from '@/lib/utils'
-import type { PhotoPreview } from '@/types/pin'
+import { useCallback, useState } from 'react';
+import { ImagePlus, X, Loader2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import type { PhotoPreview } from '@/types/pin';
 
 interface Props {
-  photos: PhotoPreview[]
-  onChange: (photos: PhotoPreview[]) => void
-  onExifLocation?: (lat: number, lng: number) => void
-  maxPhotos?: number
+  photos: PhotoPreview[];
+  onChange: (photos: PhotoPreview[]) => void;
+  onExifLocation?: (lat: number, lng: number) => void;
+  maxPhotos?: number;
 }
 
-const MAX_SIZE_MB = 10
-const MAX_OUTPUT_PX = 2048
+const MAX_SIZE_MB = 10;
+const MAX_OUTPUT_PX = 2048;
 
 export function PhotoUploader({ photos, onChange, onExifLocation, maxPhotos = 10 }: Props) {
-  const [processing, setProcessing] = useState(false)
+  const [processing, setProcessing] = useState(false);
 
-  const processFiles = useCallback(async (files: File[]) => {
-    const remaining = maxPhotos - photos.length
-    const toProcess = files.slice(0, remaining)
-    if (toProcess.length === 0) return
+  const processFiles = useCallback(
+    async (files: File[]) => {
+      const remaining = maxPhotos - photos.length;
+      const toProcess = files.slice(0, remaining);
+      if (toProcess.length === 0) return;
 
-    setProcessing(true)
-    const newPhotos: PhotoPreview[] = []
+      setProcessing(true);
+      const newPhotos: PhotoPreview[] = [];
 
-    for (const file of toProcess) {
-      if (file.size > MAX_SIZE_MB * 1024 * 1024) continue
-      if (!file.type.match(/^image\//)) continue
+      for (const file of toProcess) {
+        if (file.size > MAX_SIZE_MB * 1024 * 1024) continue;
+        if (!file.type.match(/^image\//)) continue;
 
-      // EXIF 파싱 (동적 import로 번들 분리)
-      let exifLat: number | undefined
-      let exifLng: number | undefined
-      try {
-        const exifr = await import('exifr')
-        const gps = await exifr.gps(file)
-        if (gps?.latitude && gps?.longitude) {
-          exifLat = gps.latitude
-          exifLng = gps.longitude
+        // EXIF 파싱 (동적 import로 번들 분리)
+        let exifLat: number | undefined;
+        let exifLng: number | undefined;
+        try {
+          const exifr = await import('exifr');
+          const gps = await exifr.gps(file);
+          if (gps?.latitude && gps?.longitude) {
+            exifLat = gps.latitude;
+            exifLng = gps.longitude;
+          }
+        } catch {
+          /* EXIF 없으면 무시 */
         }
-      } catch { /* EXIF 없으면 무시 */ }
 
-      // 압축 (동적 import)
-      let compressed: File
-      try {
-        const imageCompression = (await import('browser-image-compression')).default
-        compressed = await imageCompression(file, {
-          maxWidthOrHeight: MAX_OUTPUT_PX,
-          fileType: 'image/webp',
-          useWebWorker: true,
-          initialQuality: 0.85,
-        })
-      } catch {
-        compressed = file
+        // 압축 (동적 import)
+        let compressed: File;
+        try {
+          const imageCompression = (await import('browser-image-compression')).default;
+          compressed = await imageCompression(file, {
+            maxWidthOrHeight: MAX_OUTPUT_PX,
+            fileType: 'image/webp',
+            useWebWorker: true,
+            initialQuality: 0.85,
+          });
+        } catch {
+          compressed = file;
+        }
+
+        const previewUrl = URL.createObjectURL(compressed);
+        newPhotos.push({ file, previewUrl, exifLat, exifLng, compressed });
       }
 
-      const previewUrl = URL.createObjectURL(compressed)
-      newPhotos.push({ file, previewUrl, exifLat, exifLng, compressed })
-    }
+      // 첫 번째 사진에 GPS가 있으면 위치 제안
+      const firstWithGps = newPhotos.find((p) => p.exifLat && p.exifLng);
+      if (firstWithGps?.exifLat && firstWithGps?.exifLng) {
+        onExifLocation?.(firstWithGps.exifLat, firstWithGps.exifLng);
+      }
 
-    // 첫 번째 사진에 GPS가 있으면 위치 제안
-    const firstWithGps = newPhotos.find((p) => p.exifLat && p.exifLng)
-    if (firstWithGps?.exifLat && firstWithGps?.exifLng) {
-      onExifLocation?.(firstWithGps.exifLat, firstWithGps.exifLng)
-    }
-
-    onChange([...photos, ...newPhotos])
-    setProcessing(false)
-  }, [photos, onChange, onExifLocation, maxPhotos])
+      onChange([...photos, ...newPhotos]);
+      setProcessing(false);
+    },
+    [photos, onChange, onExifLocation, maxPhotos],
+  );
 
   function handleDrop(e: React.DragEvent) {
-    e.preventDefault()
-    processFiles(Array.from(e.dataTransfer.files))
+    e.preventDefault();
+    processFiles(Array.from(e.dataTransfer.files));
   }
 
   function handleFileInput(e: React.ChangeEvent<HTMLInputElement>) {
-    if (e.target.files) processFiles(Array.from(e.target.files))
-    e.target.value = ''
+    if (e.target.files) processFiles(Array.from(e.target.files));
+    e.target.value = '';
   }
 
   function removePhoto(index: number) {
-    const updated = photos.filter((_, i) => i !== index)
-    URL.revokeObjectURL(photos[index].previewUrl)
-    onChange(updated)
+    const updated = photos.filter((_, i) => i !== index);
+    URL.revokeObjectURL(photos[index].previewUrl);
+    onChange(updated);
   }
 
   return (
@@ -112,15 +117,24 @@ export function PhotoUploader({ photos, onChange, onExifLocation, maxPhotos = 10
         <label
           className={cn(
             'flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-zinc-200 py-8 text-sm text-zinc-400 transition-colors hover:border-zinc-300 hover:bg-zinc-50',
-            processing && 'pointer-events-none opacity-60'
+            processing && 'pointer-events-none opacity-60',
           )}
           onDrop={handleDrop}
           onDragOver={(e) => e.preventDefault()}
         >
           {processing ? (
-            <><Loader2 className="h-6 w-6 animate-spin" /><span>처리 중...</span></>
+            <>
+              <Loader2 className="h-6 w-6 animate-spin" />
+              <span>처리 중...</span>
+            </>
           ) : (
-            <><ImagePlus className="h-6 w-6" /><span>사진 추가 ({photos.length}/{maxPhotos})</span><span className="text-xs">JPEG, PNG, HEIC, WebP · 최대 10MB</span></>
+            <>
+              <ImagePlus className="h-6 w-6" />
+              <span>
+                사진 추가 ({photos.length}/{maxPhotos})
+              </span>
+              <span className="text-xs">JPEG, PNG, HEIC, WebP · 최대 10MB</span>
+            </>
           )}
           <input
             type="file"
@@ -133,5 +147,5 @@ export function PhotoUploader({ photos, onChange, onExifLocation, maxPhotos = 10
         </label>
       )}
     </div>
-  )
+  );
 }

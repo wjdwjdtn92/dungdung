@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from 'zod';
 
 export const pinSchema = z.object({
   title: z.string({ message: '제목을 입력해주세요' }).min(1, '제목을 입력해주세요').max(100),
@@ -12,14 +12,14 @@ export const pinSchema = z.object({
   visibility: z.enum(['public', 'friends', 'private']).default('public'),
   tags: z.array(z.string().min(1).max(30)).max(10).default([]),
   trip_id: z.string().uuid().optional().nullable(),
-})
+});
 
-export type PinFormValues = z.infer<typeof pinSchema>
+export type PinFormValues = z.infer<typeof pinSchema>;
 
 export interface PhotoPreview {
-  file: File
-  previewUrl: string
-  exifLat?: number
-  exifLng?: number
-  compressed?: File
+  file: File;
+  previewUrl: string;
+  exifLat?: number;
+  exifLng?: number;
+  compressed?: File;
 }

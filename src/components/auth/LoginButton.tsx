@@ -1,11 +1,11 @@
-'use client'
+'use client';
 
-import { Button } from '@/components/ui/button'
-import { signInWithGoogle } from '@/lib/supabase/auth'
-import { useTransition } from 'react'
+import { Button } from '@/components/ui/button';
+import { signInWithGoogle } from '@/lib/supabase/auth';
+import { useTransition } from 'react';
 
 export function LoginButton() {
-  const [isPending, startTransition] = useTransition()
+  const [isPending, startTransition] = useTransition();
 
   return (
     <Button
@@ -34,5 +34,5 @@ export function LoginButton() {
       </svg>
       {isPending ? '로그인 중...' : 'Google로 로그인'}
     </Button>
-  )
+  );
 }

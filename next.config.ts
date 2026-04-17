@@ -1,6 +1,6 @@
-import type { NextConfig } from 'next'
-import path from 'path'
-import webpack from 'webpack'
+import type { NextConfig } from 'next';
+import path from 'path';
+import webpack from 'webpack';
 
 const nextConfig: NextConfig = {
   turbopack: {
@@ -25,8 +25,8 @@ const nextConfig: NextConfig = {
       config.plugins.push(
         new webpack.DefinePlugin({
           CESIUM_BASE_URL: JSON.stringify('/cesium'),
-        })
-      )
+        }),
+      );
     }
 
     // CesiumJS Worker 파일을 번들에서 제외 — 외부 스크립트로 로드
@@ -35,15 +35,15 @@ const nextConfig: NextConfig = {
       include: /cesium/,
       use: { loader: 'source-map-loader' },
       enforce: 'pre',
-    })
+    });
 
     config.resolve.fallback = {
       ...config.resolve.fallback,
       fs: false,
-    }
+    };
 
-    return config
+    return config;
   },
-}
+};
 
-export default nextConfig
+export default nextConfig;

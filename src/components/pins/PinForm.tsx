@@ -1,38 +1,44 @@
-'use client'
+'use client';
 
-import { useState, useTransition } from 'react'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { toast } from 'sonner'
-import { useRouter } from 'next/navigation'
-import { Loader2 } from 'lucide-react'
+import { useState, useTransition } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { toast } from 'sonner';
+import { useRouter } from 'next/navigation';
+import { Loader2 } from 'lucide-react';
 
-import type { Resolver } from 'react-hook-form'
-import { pinSchema, type PinFormValues, type PhotoPreview } from '@/types/pin'
-import { createPin, createPinPhotos, updatePin } from '@/lib/pins/actions'
-import { createClient } from '@/lib/supabase/client'
+import type { Resolver } from 'react-hook-form';
+import { pinSchema, type PinFormValues, type PhotoPreview } from '@/types/pin';
+import { createPin, createPinPhotos, updatePin } from '@/lib/pins/actions';
+import { createClient } from '@/lib/supabase/client';
 
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { LocationPicker } from './LocationPicker'
-import { PhotoUploader } from './PhotoUploader'
-import { TagInput } from './TagInput'
-import { VisibilitySelect } from './VisibilitySelect'
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { LocationPicker } from './LocationPicker';
+import { PhotoUploader } from './PhotoUploader';
+import { TagInput } from './TagInput';
+import { VisibilitySelect } from './VisibilitySelect';
 
 interface PinFormProps {
-  mode?: 'create' | 'edit'
-  pinId?: string
-  initialValues?: Partial<PinFormValues>
+  mode?: 'create' | 'edit';
+  pinId?: string;
+  initialValues?: Partial<PinFormValues>;
 }
 
 export function PinForm({ mode = 'create', pinId, initialValues }: PinFormProps) {
-  const router = useRouter()
-  const [isPending, startTransition] = useTransition()
-  const [photos, setPhotos] = useState<PhotoPreview[]>([])
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+  const [photos, setPhotos] = useState<PhotoPreview[]>([]);
 
-  const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<PinFormValues>({
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    watch,
+    formState: { errors },
+  } = useForm<PinFormValues>({
     resolver: zodResolver(pinSchema) as Resolver<PinFormValues>,
     defaultValues: {
       visibility: 'public',
@@ -40,54 +46,71 @@ export function PinForm({ mode = 'create', pinId, initialValues }: PinFormProps)
       place_name: '',
       ...initialValues,
     },
-  })
+  });
 
-  const [placeName, lat, lng, tags, visibility] = watch(['place_name', 'lat', 'lng', 'tags', 'visibility'])
+  const [placeName, lat, lng, tags, visibility] = watch([
+    'place_name',
+    'lat',
+    'lng',
+    'tags',
+    'visibility',
+  ]);
 
-  function handleLocationSelect(result: { placeName: string; lat: number; lng: number; countryCode?: string; city?: string }) {
-    setValue('place_name', result.placeName, { shouldValidate: true })
-    setValue('lat', result.lat, { shouldValidate: true })
-    setValue('lng', result.lng, { shouldValidate: true })
-    if (result.countryCode) setValue('country_code', result.countryCode)
-    if (result.city) setValue('city', result.city)
+  function handleLocationSelect(result: {
+    placeName: string;
+    lat: number;
+    lng: number;
+    countryCode?: string;
+    city?: string;
+  }) {
+    setValue('place_name', result.placeName, { shouldValidate: true });
+    setValue('lat', result.lat, { shouldValidate: true });
+    setValue('lng', result.lng, { shouldValidate: true });
+    if (result.countryCode) setValue('country_code', result.countryCode);
+    if (result.city) setValue('city', result.city);
   }
 
   function handleExifLocation(exifLat: number, exifLng: number) {
-    if (lat) return
-    toast.info('사진 GPS 정보로 위치가 자동 설정됐습니다. 검색으로 변경할 수 있어요.')
-    setValue('lat', exifLat, { shouldValidate: true })
-    setValue('lng', exifLng, { shouldValidate: true })
-    setValue('place_name', `${exifLat.toFixed(5)}, ${exifLng.toFixed(5)}`)
+    if (lat) return;
+    toast.info('사진 GPS 정보로 위치가 자동 설정됐습니다. 검색으로 변경할 수 있어요.');
+    setValue('lat', exifLat, { shouldValidate: true });
+    setValue('lng', exifLng, { shouldValidate: true });
+    setValue('place_name', `${exifLat.toFixed(5)}, ${exifLng.toFixed(5)}`);
   }
 
   const onSubmit = (values: PinFormValues) => {
     startTransition(async () => {
       try {
         if (mode === 'edit' && pinId) {
-          await updatePin(pinId, values)
-          toast.success('핀이 수정됐습니다!')
-          router.push(`/pins/${pinId}`)
-          router.refresh()
-          return
+          await updatePin(pinId, values);
+          toast.success('핀이 수정됐습니다!');
+          router.push(`/pins/${pinId}`);
+          router.refresh();
+          return;
         }
 
         // 생성 모드
-        const pin = await createPin(values)
+        const pin = await createPin(values);
 
         if (photos.length > 0) {
-          const supabase = createClient()
-          const uploadedPhotos: Array<{ storagePath: string; order: number; exifLat?: number; exifLng?: number }> = []
+          const supabase = createClient();
+          const uploadedPhotos: Array<{
+            storagePath: string;
+            order: number;
+            exifLat?: number;
+            exifLng?: number;
+          }> = [];
 
           await Promise.allSettled(
             photos.map(async (photo, index) => {
-              const file = photo.compressed ?? photo.file
-              const ext = 'webp'
-              const path = `${pin.user_id}/${pin.id}/${Date.now()}-${index}.${ext}`
+              const file = photo.compressed ?? photo.file;
+              const ext = 'webp';
+              const path = `${pin.user_id}/${pin.id}/${Date.now()}-${index}.${ext}`;
 
               const { error } = await supabase.storage.from('pin-photos').upload(path, file, {
                 contentType: 'image/webp',
                 upsert: false,
-              })
+              });
 
               if (!error) {
                 uploadedPhotos.push({
@@ -95,48 +118,56 @@ export function PinForm({ mode = 'create', pinId, initialValues }: PinFormProps)
                   order: index,
                   exifLat: photo.exifLat,
                   exifLng: photo.exifLng,
-                })
+                });
               }
-            })
-          )
+            }),
+          );
 
           if (uploadedPhotos.length > 0) {
-            await createPinPhotos(pin.id, uploadedPhotos)
+            await createPinPhotos(pin.id, uploadedPhotos);
           }
         }
 
-        toast.success('핀이 생성됐습니다!')
-        router.push(`/pins/${pin.id}`)
+        toast.success('핀이 생성됐습니다!');
+        router.push(`/pins/${pin.id}`);
       } catch (e) {
-        toast.error(e instanceof Error ? e.message : mode === 'edit' ? '핀 수정에 실패했습니다' : '핀 생성에 실패했습니다')
+        toast.error(
+          e instanceof Error
+            ? e.message
+            : mode === 'edit'
+              ? '핀 수정에 실패했습니다'
+              : '핀 생성에 실패했습니다',
+        );
       }
-    })
-  }
+    });
+  };
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
       {/* 사진 (생성 모드에서만) */}
       {mode === 'create' && (
         <div className="space-y-1.5">
-          <Label>사진 <span className="text-zinc-400 font-normal">(선택, 최대 10장)</span></Label>
-          <PhotoUploader
-            photos={photos}
-            onChange={setPhotos}
-            onExifLocation={handleExifLocation}
-          />
+          <Label>
+            사진 <span className="text-zinc-400 font-normal">(선택, 최대 10장)</span>
+          </Label>
+          <PhotoUploader photos={photos} onChange={setPhotos} onExifLocation={handleExifLocation} />
         </div>
       )}
 
       {/* 제목 */}
       <div className="space-y-1.5">
-        <Label htmlFor="title">제목 <span className="text-red-500">*</span></Label>
+        <Label htmlFor="title">
+          제목 <span className="text-red-500">*</span>
+        </Label>
         <Input id="title" {...register('title')} placeholder="이 장소의 제목" />
         {errors.title && <p className="text-xs text-red-500">{errors.title.message}</p>}
       </div>
 
       {/* 위치 */}
       <div className="space-y-1.5">
-        <Label>장소 <span className="text-red-500">*</span></Label>
+        <Label>
+          장소 <span className="text-red-500">*</span>
+        </Label>
         <LocationPicker
           placeName={placeName}
           lat={lat}
@@ -148,8 +179,15 @@ export function PinForm({ mode = 'create', pinId, initialValues }: PinFormProps)
 
       {/* 내용 */}
       <div className="space-y-1.5">
-        <Label htmlFor="body">내용 <span className="text-zinc-400 font-normal">(선택)</span></Label>
-        <Textarea id="body" {...register('body')} placeholder="이 장소에서의 기억을 남겨보세요" rows={5} />
+        <Label htmlFor="body">
+          내용 <span className="text-zinc-400 font-normal">(선택)</span>
+        </Label>
+        <Textarea
+          id="body"
+          {...register('body')}
+          placeholder="이 장소에서의 기억을 남겨보세요"
+          rows={5}
+        />
       </div>
 
       {/* 태그 */}
@@ -168,11 +206,17 @@ export function PinForm({ mode = 'create', pinId, initialValues }: PinFormProps)
       </div>
 
       <Button type="submit" className="w-full" disabled={isPending}>
-        {isPending
-          ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />{mode === 'edit' ? '저장 중...' : '저장 중...'}</>
-          : mode === 'edit' ? '수정 완료' : '핀 만들기'
-        }
+        {isPending ? (
+          <>
+            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+            {mode === 'edit' ? '저장 중...' : '저장 중...'}
+          </>
+        ) : mode === 'edit' ? (
+          '수정 완료'
+        ) : (
+          '핀 만들기'
+        )}
       </Button>
     </form>
-  )
+  );
 }

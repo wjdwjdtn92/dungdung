@@ -1,14 +1,16 @@
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
-import { PinForm } from '@/components/pins/PinForm'
-import type { Metadata } from 'next'
+import { createClient } from '@/lib/supabase/server';
+import { redirect } from 'next/navigation';
+import { PinForm } from '@/components/pins/PinForm';
+import type { Metadata } from 'next';
 
-export const metadata: Metadata = { title: '핀 만들기' }
+export const metadata: Metadata = { title: '핀 만들기' };
 
 export default async function NewPinPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/')
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect('/');
 
   return (
     <div className="min-h-screen bg-zinc-50">
@@ -22,5 +24,5 @@ export default async function NewPinPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }

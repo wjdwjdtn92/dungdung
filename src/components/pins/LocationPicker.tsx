@@ -1,53 +1,59 @@
-'use client'
+'use client';
 
-import { useState, useRef, useEffect } from 'react'
-import { MapPin, Search, Loader2 } from 'lucide-react'
-import { Input } from '@/components/ui/input'
-import { searchPlaces, parseFeature, type GeocodingFeature } from '@/lib/mapbox/geocoding'
-import { cn } from '@/lib/utils'
+import { useState, useRef, useEffect } from 'react';
+import { MapPin, Search, Loader2 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { searchPlaces, parseFeature, type GeocodingFeature } from '@/lib/mapbox/geocoding';
+import { cn } from '@/lib/utils';
 
 interface Props {
-  placeName: string
-  lat?: number
-  lng?: number
-  onSelect: (result: { placeName: string; lat: number; lng: number; countryCode?: string; city?: string }) => void
-  error?: string
+  placeName: string;
+  lat?: number;
+  lng?: number;
+  onSelect: (result: {
+    placeName: string;
+    lat: number;
+    lng: number;
+    countryCode?: string;
+    city?: string;
+  }) => void;
+  error?: string;
 }
 
 export function LocationPicker({ placeName, lat, lng, onSelect, error }: Props) {
-  const [query, setQuery] = useState('')
-  const [results, setResults] = useState<GeocodingFeature[]>([])
-  const [isLoading, setIsLoading] = useState(false)
-  const [isOpen, setIsOpen] = useState(false)
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState<GeocodingFeature[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (!query.trim()) {
-      setResults([])
-      setIsOpen(false)
-      return
+      setResults([]);
+      setIsOpen(false);
+      return;
     }
-    if (debounceRef.current) clearTimeout(debounceRef.current)
+    if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(async () => {
-      setIsLoading(true)
+      setIsLoading(true);
       try {
-        const features = await searchPlaces(query)
-        setResults(features)
-        setIsOpen(true)
+        const features = await searchPlaces(query);
+        setResults(features);
+        setIsOpen(true);
       } catch {
         // 검색 실패 시 조용히 처리
       } finally {
-        setIsLoading(false)
+        setIsLoading(false);
       }
-    }, 350)
-  }, [query])
+    }, 350);
+  }, [query]);
 
   function handleSelect(feature: GeocodingFeature) {
-    const result = parseFeature(feature)
-    onSelect(result)
-    setQuery('')
-    setResults([])
-    setIsOpen(false)
+    const result = parseFeature(feature);
+    onSelect(result);
+    setQuery('');
+    setResults([]);
+    setIsOpen(false);
   }
 
   return (
@@ -97,9 +103,7 @@ export function LocationPicker({ placeName, lat, lng, onSelect, error }: Props) 
         </ul>
       )}
 
-      {error && !placeName && (
-        <p className="text-xs text-red-500">{error}</p>
-      )}
+      {error && !placeName && <p className="text-xs text-red-500">{error}</p>}
     </div>
-  )
+  );
 }
