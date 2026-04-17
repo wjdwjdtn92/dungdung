@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import 'leaflet/dist/leaflet.css';
+import { cn } from '@/lib/utils';
 import type { GlobeOptions, GlobePinMarker } from './GlobeEngine';
 
 interface LeafletMapProps extends GlobeOptions {
@@ -83,7 +84,8 @@ export function LeafletMap({ pins = [], onPinClick, className }: LeafletMapProps
   }, [pins, onPinClick]);
 
   return (
-    <div ref={containerRef} className={className ?? 'absolute inset-0'} aria-label="2D 지도" />
+    // isolate: Leaflet 내부 z-index(최대 1000)가 외부 UI와 충돌하지 않도록 stacking context 분리
+    <div ref={containerRef} className={cn(className ?? 'absolute inset-0', 'isolate')} aria-label="2D 지도" />
   );
 }
 

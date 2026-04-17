@@ -1,5 +1,4 @@
 import { createClient } from '@/lib/supabase/server';
-import { redirect } from 'next/navigation';
 import { MapClient } from './MapClient';
 import { getUnreadCount } from '@/lib/notifications/actions';
 import type { GlobePinMarker } from '@/components/globe/GlobeEngine';
@@ -53,13 +52,46 @@ const PIN_SELECT = `id, title, lat, lng, place_name, visited_at,
 
 export default async function MapPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect('/');
 
-  // 프로필 + 내 핀 + 피드 핀 + 탐색 핀 + 미읽음 카운트 병렬
-  const [{ data: profile }, { data: myPinsRaw }, { data: followings }, { data: explorePinsRaw }, unreadCount] =
+  // 인증 체크 + 탐색 핀 병렬 로드
+  const [
+    {
+      data: { user },
+    },
+    { data: explorePinsRaw },
+  ] = await Promise.all([
+    supabase.auth.getUser(),
+    supabase
+      .from('pins')
+      .select(`${PIN_SELECT}, users!pins_user_id_fkey(display_name, avatar_url)`)
+      .eq('visibility', 'public')
+      .order('created_at', { ascending: false })
+      .limit(50),
+  ]);
+
+  const explorePins = explorePinsRaw ?? [];
+
+  // 비로그인: explore 핀만 표시
+  if (!user) {
+    return (
+      <MapClient
+        myPins={[]}
+        myPinList={[]}
+        feedPins={[]}
+        feedMarkers={[]}
+        explorePins={toPinList(explorePins as Parameters<typeof toPinList>[0])}
+        exploreMarkers={toMarkers(
+          explorePins as Array<{ id: string; title: string; lat: number; lng: number; visited_at: string }>,
+        )}
+        currentUserId={null}
+        user={null}
+        unreadCount={0}
+      />
+    );
+  }
+
+  // 로그인: 프로필 + 내 핀 + 팔로잉 + 미읽음 병렬 로드
+  const [{ data: profile }, { data: myPinsRaw }, { data: followings }, unreadCount] =
     await Promise.all([
       supabase.from('users').select('username, display_name, avatar_url').eq('id', user.id).single(),
       supabase
@@ -69,18 +101,10 @@ export default async function MapPage() {
         .order('visited_at', { ascending: false })
         .limit(100),
       supabase.from('follows').select('following_id').eq('follower_id', user.id),
-      supabase
-        .from('pins')
-        .select(`${PIN_SELECT}, users!pins_user_id_fkey(display_name, avatar_url)`)
-        .eq('visibility', 'public')
-        .order('created_at', { ascending: false })
-        .limit(50),
       getUnreadCount(),
     ]);
 
-  if (!profile) redirect('/');
-
-  // 피드: 팔로우한 사용자의 핀
+  // 피드: 팔로우한 사용자 + 본인 핀
   const followingIds = followings?.map((f) => f.following_id) ?? [];
   const authorIds = [user.id, ...followingIds];
 
@@ -97,7 +121,6 @@ export default async function MapPage() {
 
   const myPins = myPinsRaw ?? [];
   const feedPins = feedPinsRaw ?? [];
-  const explorePins = explorePinsRaw ?? [];
 
   return (
     <MapClient
@@ -108,7 +131,7 @@ export default async function MapPage() {
       explorePins={toPinList(explorePins as Parameters<typeof toPinList>[0])}
       exploreMarkers={toMarkers(explorePins as Array<{ id: string; title: string; lat: number; lng: number; visited_at: string }>)}
       currentUserId={user.id}
-      user={profile}
+      user={profile ?? null}
       unreadCount={unreadCount}
     />
   );

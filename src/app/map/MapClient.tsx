@@ -3,7 +3,7 @@
 import { useState, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Plus, Menu, Settings, Bell } from 'lucide-react';
+import { Plus, Menu, Settings, Bell, LogIn } from 'lucide-react';
 import { DynamicGlobe } from '@/components/globe/DynamicGlobe';
 import { DynamicLeaflet } from '@/components/globe/DynamicLeaflet';
 import type { GlobePinMarker } from '@/components/globe/GlobeEngine';
@@ -21,12 +21,12 @@ interface MapClientProps {
   feedMarkers: GlobePinMarker[];
   explorePins: PinListData[];
   exploreMarkers: GlobePinMarker[];
-  currentUserId: string;
+  currentUserId: string | null;
   user: {
     username: string;
     display_name: string;
     avatar_url: string | null;
-  };
+  } | null;
   unreadCount: number;
 }
 
@@ -41,14 +41,16 @@ export function MapClient({
   user,
   unreadCount,
 }: MapClientProps) {
-  const [panelView, setPanelView] = useState<PanelView>({ type: 'my-pins' });
-  const [activeTab, setActiveTab] = useState<TabType>('my-pins');
+  const isLoggedIn = !!user;
+  const defaultTab: TabType = isLoggedIn ? 'my-pins' : 'explore';
+
+  const [panelView, setPanelView] = useState<PanelView>({ type: defaultTab });
+  const [activeTab, setActiveTab] = useState<TabType>(defaultTab);
   const [userPinMarkers, setUserPinMarkers] = useState<GlobePinMarker[] | null>(null);
   const [mapMode, setMapMode] = useState<MapMode>('3d');
 
   // 현재 뷰에 따라 지도에 표시할 핀 결정
   const displayPins = (() => {
-    // 사용자 프로필 뷰에서는 해당 사용자의 핀 표시
     if (panelView.type === 'user-profile' && userPinMarkers) {
       return userPinMarkers;
     }
@@ -131,7 +133,7 @@ export function MapClient({
       >
         {isListView && (
           <>
-            <PanelTabs active={activeTab} onChange={handleTabChange} />
+            <PanelTabs active={activeTab} onChange={handleTabChange} isLoggedIn={isLoggedIn} />
             <div className="p-3 space-y-1">
               {listData.length === 0 ? (
                 <div className="text-center py-12 text-zinc-400 text-sm">
@@ -173,31 +175,43 @@ export function MapClient({
 
       {/* 상단 우측 컨트롤 */}
       <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
-        <Link
-          href="/notifications"
-          className="relative p-2.5 bg-white/90 backdrop-blur-sm rounded-full shadow-md hover:bg-white transition-colors"
-        >
-          <Bell className="h-4 w-4 text-zinc-700" />
-          {unreadCount > 0 && (
-            <span className="absolute -top-0.5 -right-0.5 h-4 min-w-4 flex items-center justify-center rounded-full bg-red-500 text-white text-[9px] font-bold px-1">
-              {unreadCount > 99 ? '99+' : unreadCount}
-            </span>
-          )}
-        </Link>
-        <Link
-          href="/settings"
-          className="p-2.5 bg-white/90 backdrop-blur-sm rounded-full shadow-md hover:bg-white transition-colors"
-        >
-          <Settings className="h-4 w-4 text-zinc-700" />
-        </Link>
-        <Link
-          href={`/${user.username}`}
-          className="h-9 w-9 rounded-full bg-zinc-200 overflow-hidden shadow-md"
-        >
-          {user.avatar_url && (
-            <Image src={user.avatar_url} alt={user.display_name} width={36} height={36} />
-          )}
-        </Link>
+        {isLoggedIn ? (
+          <>
+            <Link
+              href="/notifications"
+              className="relative p-2.5 bg-white/90 backdrop-blur-sm rounded-full shadow-md hover:bg-white transition-colors"
+            >
+              <Bell className="h-4 w-4 text-zinc-700" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 h-4 min-w-4 flex items-center justify-center rounded-full bg-red-500 text-white text-[9px] font-bold px-1">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
+            </Link>
+            <Link
+              href="/settings"
+              className="p-2.5 bg-white/90 backdrop-blur-sm rounded-full shadow-md hover:bg-white transition-colors"
+            >
+              <Settings className="h-4 w-4 text-zinc-700" />
+            </Link>
+            <Link
+              href={`/${user!.username}`}
+              className="h-9 w-9 rounded-full bg-zinc-200 overflow-hidden shadow-md"
+            >
+              {user!.avatar_url && (
+                <Image src={user!.avatar_url} alt={user!.display_name} width={36} height={36} />
+              )}
+            </Link>
+          </>
+        ) : (
+          <Link
+            href="/"
+            className="flex items-center gap-1.5 px-4 py-2 bg-white/90 backdrop-blur-sm rounded-full shadow-md text-sm font-medium text-zinc-800 hover:bg-white transition-colors"
+          >
+            <LogIn className="h-4 w-4" />
+            로그인
+          </Link>
+        )}
       </div>
 
       {/* 패널 토글 (닫혀있을 때) */}
@@ -210,13 +224,15 @@ export function MapClient({
         </button>
       )}
 
-      {/* 새 핀 만들기 */}
-      <Link
-        href="/pins/new"
-        className="absolute bottom-8 right-6 z-10 flex items-center gap-2 bg-white text-zinc-900 font-medium text-sm px-4 py-2.5 rounded-full shadow-lg hover:bg-zinc-100 transition-colors"
-      >
-        <Plus className="h-4 w-4" />핀 만들기
-      </Link>
+      {/* 새 핀 만들기 (로그인 사용자만) */}
+      {isLoggedIn && (
+        <Link
+          href="/pins/new"
+          className="absolute bottom-8 right-6 z-10 flex items-center gap-2 bg-white text-zinc-900 font-medium text-sm px-4 py-2.5 rounded-full shadow-lg hover:bg-zinc-100 transition-colors"
+        >
+          <Plus className="h-4 w-4" />핀 만들기
+        </Link>
+      )}
     </div>
   );
 }
