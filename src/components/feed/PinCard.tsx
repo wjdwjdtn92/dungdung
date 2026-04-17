@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import { MapPin } from 'lucide-react';
+import { Heart, MapPin, MessageCircle } from 'lucide-react';
 import type { FeedPin } from '@/lib/feed/actions';
 
 interface PinCardProps {
@@ -75,6 +75,18 @@ export function PinCard({ pin }: PinCardProps) {
           {pin.body && (
             <p className="text-sm text-zinc-500 line-clamp-2 leading-relaxed">{pin.body}</p>
           )}
+
+          {/* 좋아요 / 댓글 */}
+          <div className="flex items-center gap-3 pt-1 text-xs text-zinc-400">
+            <span className="flex items-center gap-1">
+              <Heart className="h-3.5 w-3.5" />
+              {pin.like_count}
+            </span>
+            <span className="flex items-center gap-1">
+              <MessageCircle className="h-3.5 w-3.5" />
+              {pin.comment_count}
+            </span>
+          </div>
         </div>
       </article>
     </Link>

@@ -12,6 +12,8 @@ export interface FeedPin {
   created_at: string;
   user_id: string;
   cover_photo: string | null;
+  like_count: number;
+  comment_count: number;
   author: {
     id: string;
     username: string;
@@ -52,7 +54,9 @@ export async function getFeedPins(cursor?: FeedCursor): Promise<{
       `
       id, title, body, place_name, visibility, created_at, user_id,
       users!pins_user_id_fkey(id, username, display_name, avatar_url),
-      pin_photos(storage_path, order)
+      pin_photos(storage_path, order),
+      likes(count),
+      comments(count)
     `,
     )
     .in('user_id', authorIds)
@@ -77,6 +81,8 @@ export async function getFeedPins(cursor?: FeedCursor): Promise<{
   const pins: FeedPin[] = results.map((p) => {
     const photos = (p.pin_photos as Array<{ storage_path: string; order: number }> | null) ?? [];
     const sorted = [...photos].sort((a, b) => a.order - b.order);
+    const likeAgg = p.likes as unknown as Array<{ count: number }>;
+    const commentAgg = p.comments as unknown as Array<{ count: number }>;
     return {
       id: p.id,
       title: p.title,
@@ -86,6 +92,8 @@ export async function getFeedPins(cursor?: FeedCursor): Promise<{
       created_at: p.created_at,
       user_id: p.user_id,
       cover_photo: sorted[0]?.storage_path ?? null,
+      like_count: likeAgg?.[0]?.count ?? 0,
+      comment_count: commentAgg?.[0]?.count ?? 0,
       author: p.users as FeedPin['author'],
     };
   });
