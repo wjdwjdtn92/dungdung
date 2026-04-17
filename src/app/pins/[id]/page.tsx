@@ -1,9 +1,13 @@
 import { createClient } from '@/lib/supabase/server';
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
+import Link from 'next/link';
 import { MapPin, Globe, Lock, Users } from 'lucide-react';
 import type { Metadata } from 'next';
 import { PinActions } from '@/components/pins/PinActions';
+import { LikeButton } from '@/components/pins/LikeButton';
+import { CommentSection, type CommentData } from '@/components/pins/CommentSection';
+import { AppHeader } from '@/components/layout/AppHeader';
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -51,8 +55,15 @@ export default async function PinDetailPage({ params }: Props) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // 핀 + 작성자 + 사진 + 태그 병렬 조회 (server-parallel-fetching)
-  const [{ data: pin, error: pinError }, { data: photos }, { data: pinTags }] = await Promise.all([
+  // 핀 + 작성자 + 사진 + 태그 + 좋아요 + 댓글 병렬 조회
+  const [
+    { data: pin, error: pinError },
+    { data: photos },
+    { data: pinTags },
+    { data: likeRows },
+    { count: likeCount },
+    { data: commentRows },
+  ] = await Promise.all([
     supabase
       .from('pins')
       .select('*, users!pins_user_id_fkey(id, username, display_name, avatar_url)')
@@ -60,6 +71,15 @@ export default async function PinDetailPage({ params }: Props) {
       .single(),
     supabase.from('pin_photos').select('*').eq('pin_id', id).order('order'),
     supabase.from('pin_tags').select('tags(name)').eq('pin_id', id),
+    user
+      ? supabase.from('likes').select('user_id').eq('pin_id', id).eq('user_id', user.id)
+      : Promise.resolve({ data: [] }),
+    supabase.from('likes').select('*', { count: 'exact', head: true }).eq('pin_id', id),
+    supabase
+      .from('comments')
+      .select('id, body, created_at, user_id, users!comments_user_id_fkey(id, username, display_name, avatar_url)')
+      .eq('pin_id', id)
+      .order('created_at', { ascending: true }),
   ]);
 
   if (pinError) console.error('[pin detail] query error:', pinError);
@@ -72,6 +92,16 @@ export default async function PinDetailPage({ params }: Props) {
     avatar_url: string | null;
   } | null;
   const tags = pinTags?.flatMap((pt) => (pt.tags as { name: string } | null)?.name ?? []) ?? [];
+  const liked = (likeRows ?? []).length > 0;
+
+  const comments: CommentData[] =
+    commentRows?.map((c) => ({
+      id: c.id,
+      body: c.body,
+      created_at: c.created_at,
+      user_id: c.user_id,
+      author: c.users as CommentData['author'],
+    })) ?? [];
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
   function photoUrl(path: string) {
@@ -79,7 +109,9 @@ export default async function PinDetailPage({ params }: Props) {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-50">
+    <>
+      <AppHeader />
+      <div className="min-h-screen bg-zinc-50">
       <div className="mx-auto max-w-2xl px-4 py-8 space-y-6">
         {/* 사진 */}
         {photos && photos.length > 0 && (
@@ -141,17 +173,20 @@ export default async function PinDetailPage({ params }: Props) {
             </div>
           )}
 
-          {author && (
-            <div className="flex items-center gap-2 pt-1 border-t border-zinc-50">
-              <div className="h-7 w-7 rounded-full bg-zinc-200 overflow-hidden">
-                {author.avatar_url && (
-                  <Image src={author.avatar_url} alt={author.display_name} width={28} height={28} />
-                )}
-              </div>
-              <span className="text-sm text-zinc-600">{author.display_name}</span>
-              <span className="text-sm text-zinc-400">@{author.username}</span>
-            </div>
-          )}
+          <div className="flex items-center justify-between pt-3 border-t border-zinc-100">
+            {author && (
+              <Link href={`/${author.username}`} className="flex items-center gap-2 hover:opacity-80">
+                <div className="h-7 w-7 rounded-full bg-zinc-200 overflow-hidden">
+                  {author.avatar_url && (
+                    <Image src={author.avatar_url} alt={author.display_name} width={28} height={28} />
+                  )}
+                </div>
+                <span className="text-sm text-zinc-600">{author.display_name}</span>
+                <span className="text-sm text-zinc-400">@{author.username}</span>
+              </Link>
+            )}
+            <LikeButton pinId={id} initialLiked={liked} initialCount={likeCount ?? 0} />
+          </div>
         </div>
 
         {/* 본문 */}
@@ -160,7 +195,18 @@ export default async function PinDetailPage({ params }: Props) {
             <p className="text-zinc-700 leading-relaxed whitespace-pre-wrap">{pin.body}</p>
           </div>
         )}
+
+        {/* 댓글 */}
+        <div className="bg-white rounded-2xl border border-zinc-100 p-6">
+          <CommentSection
+            pinId={id}
+            initialComments={comments}
+            currentUserId={user?.id ?? null}
+            pinOwnerId={pin.user_id}
+          />
+        </div>
       </div>
     </div>
+    </>
   );
 }
