@@ -8,8 +8,8 @@ export default async function Home() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // 로그인 상태면 피드로
-  if (user) redirect('/feed');
+  // 로그인 상태면 지도로
+  if (user) redirect('/map');
 
   return (
     <main className="flex flex-1 flex-col items-center justify-center min-h-screen bg-[#0a0f1e]">

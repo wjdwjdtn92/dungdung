@@ -1,33 +1,177 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import { useState, useCallback } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
-import { Plus } from 'lucide-react';
+import { Plus, Menu, Settings, Bell, Search } from 'lucide-react';
 import { DynamicGlobe } from '@/components/globe/DynamicGlobe';
 import type { GlobePinMarker } from '@/components/globe/GlobeEngine';
+import { SidePanel, type PanelView } from '@/components/map/SidePanel';
+import { PanelTabs, type TabType } from '@/components/map/PanelTabs';
+import { PinListItem, type PinListData } from '@/components/map/PinListItem';
 
 interface MapClientProps {
-  pins: GlobePinMarker[];
+  myPins: GlobePinMarker[];
+  myPinList: PinListData[];
+  feedPins: PinListData[];
+  feedMarkers: GlobePinMarker[];
+  explorePins: PinListData[];
+  exploreMarkers: GlobePinMarker[];
+  user: {
+    username: string;
+    display_name: string;
+    avatar_url: string | null;
+  };
+  unreadCount: number;
 }
 
-export function MapClient({ pins }: MapClientProps) {
-  const router = useRouter();
+export function MapClient({
+  myPins,
+  myPinList,
+  feedPins,
+  feedMarkers,
+  explorePins,
+  exploreMarkers,
+  user,
+  unreadCount,
+}: MapClientProps) {
+  const [panelView, setPanelView] = useState<PanelView>({ type: 'my-pins' });
+  const [activeTab, setActiveTab] = useState<TabType>('my-pins');
 
-  function handlePinClick(pinId: string) {
-    router.push(`/pins/${pinId}`);
-  }
+  // 현재 탭에 따라 지도에 표시할 핀 결정
+  const displayPins = (() => {
+    switch (activeTab) {
+      case 'feed':
+        return feedMarkers;
+      case 'explore':
+        return exploreMarkers;
+      case 'my-pins':
+      default:
+        return myPins;
+    }
+  })();
+
+  // 현재 탭에 따라 리스트 데이터 결정
+  const listData = (() => {
+    switch (activeTab) {
+      case 'feed':
+        return feedPins;
+      case 'explore':
+        return explorePins;
+      case 'my-pins':
+      default:
+        return myPinList;
+    }
+  })();
+
+  const handleTabChange = useCallback((tab: TabType) => {
+    setActiveTab(tab);
+    setPanelView({ type: tab });
+  }, []);
+
+  const handlePinClick = useCallback((pinId: string) => {
+    setPanelView({ type: 'pin-detail', pinId });
+  }, []);
+
+  const handleBack = useCallback(() => {
+    setPanelView({ type: activeTab });
+  }, [activeTab]);
+
+  const handleClose = useCallback(() => {
+    setPanelView({ type: 'closed' });
+  }, []);
+
+  const handleOpenPanel = useCallback(() => {
+    setPanelView({ type: activeTab });
+  }, [activeTab]);
+
+  const isListView =
+    panelView.type === 'feed' || panelView.type === 'explore' || panelView.type === 'my-pins';
 
   return (
     <div className="fixed inset-0 bg-zinc-950 overflow-hidden">
-      {/* 3D 지구 — fixed inset-0로 body 레이아웃 영향 완전 차단 */}
-      <DynamicGlobe pins={pins} onPinClick={handlePinClick} className="absolute inset-0" />
+      {/* 지도 */}
+      <DynamicGlobe pins={displayPins} onPinClick={handlePinClick} className="absolute inset-0" />
 
-      {/* 핀 개수 배지 */}
-      <div className="absolute top-4 left-4 z-10 bg-black/60 backdrop-blur-sm text-white text-sm px-3 py-1.5 rounded-full">
-        핀 {pins.length}개
+      {/* 사이드패널 */}
+      <SidePanel
+        view={panelView}
+        onClose={handleClose}
+        onBack={panelView.type === 'pin-detail' || panelView.type === 'user-profile' ? handleBack : undefined}
+      >
+        {isListView && (
+          <>
+            <PanelTabs active={activeTab} onChange={handleTabChange} />
+            <div className="p-3 space-y-1">
+              {listData.length === 0 ? (
+                <div className="text-center py-12 text-zinc-400 text-sm">
+                  {activeTab === 'my-pins' && '아직 핀이 없어요. 첫 핀을 만들어보세요!'}
+                  {activeTab === 'feed' && '팔로우한 사람의 핀이 여기에 나타나요'}
+                  {activeTab === 'explore' && '공개된 핀이 없어요'}
+                </div>
+              ) : (
+                listData.map((pin) => (
+                  <PinListItem key={pin.id} pin={pin} onClick={handlePinClick} />
+                ))
+              )}
+            </div>
+          </>
+        )}
+
+        {panelView.type === 'pin-detail' && (
+          <div className="p-4 text-center text-zinc-400 text-sm">
+            핀 상세 보기 (추후 구현)
+            <br />
+            <Link
+              href={`/pins/${panelView.pinId}`}
+              className="text-zinc-900 underline mt-2 inline-block"
+            >
+              전체 페이지로 보기
+            </Link>
+          </div>
+        )}
+      </SidePanel>
+
+      {/* 상단 우측 컨트롤 */}
+      <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
+        <Link
+          href="/notifications"
+          className="relative p-2.5 bg-white/90 backdrop-blur-sm rounded-full shadow-md hover:bg-white transition-colors"
+        >
+          <Bell className="h-4 w-4 text-zinc-700" />
+          {unreadCount > 0 && (
+            <span className="absolute -top-0.5 -right-0.5 h-4 min-w-4 flex items-center justify-center rounded-full bg-red-500 text-white text-[9px] font-bold px-1">
+              {unreadCount > 99 ? '99+' : unreadCount}
+            </span>
+          )}
+        </Link>
+        <Link
+          href="/settings"
+          className="p-2.5 bg-white/90 backdrop-blur-sm rounded-full shadow-md hover:bg-white transition-colors"
+        >
+          <Settings className="h-4 w-4 text-zinc-700" />
+        </Link>
+        <Link
+          href={`/${user.username}`}
+          className="h-9 w-9 rounded-full bg-zinc-200 overflow-hidden shadow-md"
+        >
+          {user.avatar_url && (
+            <Image src={user.avatar_url} alt={user.display_name} width={36} height={36} />
+          )}
+        </Link>
       </div>
 
-      {/* 새 핀 만들기 버튼 */}
+      {/* 패널 토글 (닫혀있을 때) */}
+      {panelView.type === 'closed' && (
+        <button
+          onClick={handleOpenPanel}
+          className="absolute top-4 left-4 z-10 p-2.5 bg-white/90 backdrop-blur-sm rounded-full shadow-md hover:bg-white transition-colors"
+        >
+          <Menu className="h-5 w-5 text-zinc-700" />
+        </button>
+      )}
+
+      {/* 새 핀 만들기 */}
       <Link
         href="/pins/new"
         className="absolute bottom-8 right-6 z-10 flex items-center gap-2 bg-white text-zinc-900 font-medium text-sm px-4 py-2.5 rounded-full shadow-lg hover:bg-zinc-100 transition-colors"
