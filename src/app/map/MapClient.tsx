@@ -3,7 +3,8 @@
 import { useState, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Plus, Menu, Settings, Bell, LogIn } from 'lucide-react';
+import { Plus, Menu, Settings, Bell } from 'lucide-react';
+import { LoginButton } from '@/components/auth/LoginButton';
 import { DynamicGlobe } from '@/components/globe/DynamicGlobe';
 import { DynamicLeaflet } from '@/components/globe/DynamicLeaflet';
 import type { GlobePinMarker } from '@/components/globe/GlobeEngine';
@@ -204,13 +205,9 @@ export function MapClient({
             </Link>
           </>
         ) : (
-          <Link
-            href="/"
-            className="flex items-center gap-1.5 px-4 py-2 bg-white/90 backdrop-blur-sm rounded-full shadow-md text-sm font-medium text-zinc-800 hover:bg-white transition-colors"
-          >
-            <LogIn className="h-4 w-4" />
-            로그인
-          </Link>
+          <div className="bg-white/90 backdrop-blur-sm rounded-lg shadow-md overflow-hidden">
+            <LoginButton size="sm" />
+          </div>
         )}
       </div>
 

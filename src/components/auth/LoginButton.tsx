@@ -4,13 +4,17 @@ import { Button } from '@/components/ui/button';
 import { signInWithGoogle } from '@/lib/supabase/auth';
 import { useTransition } from 'react';
 
-export function LoginButton() {
+interface LoginButtonProps {
+  size?: 'sm' | 'default' | 'lg';
+}
+
+export function LoginButton({ size = 'lg' }: LoginButtonProps) {
   const [isPending, startTransition] = useTransition();
 
   return (
     <Button
-      size="lg"
-      className="gap-3 bg-white text-zinc-900 hover:bg-zinc-100 border border-zinc-200 shadow-sm"
+      size={size}
+      className="gap-2 bg-white text-zinc-900 hover:bg-zinc-100 border border-zinc-200 shadow-sm"
       disabled={isPending}
       onClick={() => startTransition(() => signInWithGoogle())}
     >

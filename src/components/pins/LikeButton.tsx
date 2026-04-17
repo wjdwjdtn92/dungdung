@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { useRouter } from 'next/navigation';
 import { Heart } from 'lucide-react';
 import { likePin, unlikePin } from '@/lib/social/actions';
+import { signInWithGoogle } from '@/lib/supabase/auth';
 import { cn } from '@/lib/utils';
 
 interface LikeButtonProps {
@@ -14,14 +14,13 @@ interface LikeButtonProps {
 }
 
 export function LikeButton({ pinId, initialLiked, initialCount, currentUserId }: LikeButtonProps) {
-  const router = useRouter();
   const [liked, setLiked] = useState(initialLiked);
   const [count, setCount] = useState(initialCount);
   const [isPending, startTransition] = useTransition();
 
   function toggle() {
     if (!currentUserId) {
-      router.push('/');
+      signInWithGoogle();
       return;
     }
 
