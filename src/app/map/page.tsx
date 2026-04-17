@@ -107,6 +107,7 @@ export default async function MapPage() {
       feedMarkers={toMarkers(feedPins as Array<{ id: string; title: string; lat: number; lng: number; visited_at: string }>)}
       explorePins={toPinList(explorePins as Parameters<typeof toPinList>[0])}
       exploreMarkers={toMarkers(explorePins as Array<{ id: string; title: string; lat: number; lng: number; visited_at: string }>)}
+      currentUserId={user.id}
       user={profile}
       unreadCount={unreadCount}
     />

@@ -3,12 +3,14 @@
 import { useState, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Plus, Menu, Settings, Bell, Search } from 'lucide-react';
+import { Plus, Menu, Settings, Bell } from 'lucide-react';
 import { DynamicGlobe } from '@/components/globe/DynamicGlobe';
 import type { GlobePinMarker } from '@/components/globe/GlobeEngine';
 import { SidePanel, type PanelView } from '@/components/map/SidePanel';
 import { PanelTabs, type TabType } from '@/components/map/PanelTabs';
 import { PinListItem, type PinListData } from '@/components/map/PinListItem';
+import { PanelPinDetail } from '@/components/map/PanelPinDetail';
+import { PanelUserProfile } from '@/components/map/PanelUserProfile';
 
 interface MapClientProps {
   myPins: GlobePinMarker[];
@@ -17,6 +19,7 @@ interface MapClientProps {
   feedMarkers: GlobePinMarker[];
   explorePins: PinListData[];
   exploreMarkers: GlobePinMarker[];
+  currentUserId: string;
   user: {
     username: string;
     display_name: string;
@@ -32,14 +35,20 @@ export function MapClient({
   feedMarkers,
   explorePins,
   exploreMarkers,
+  currentUserId,
   user,
   unreadCount,
 }: MapClientProps) {
   const [panelView, setPanelView] = useState<PanelView>({ type: 'my-pins' });
   const [activeTab, setActiveTab] = useState<TabType>('my-pins');
+  const [userPinMarkers, setUserPinMarkers] = useState<GlobePinMarker[] | null>(null);
 
-  // 현재 탭에 따라 지도에 표시할 핀 결정
+  // 현재 뷰에 따라 지도에 표시할 핀 결정
   const displayPins = (() => {
+    // 사용자 프로필 뷰에서는 해당 사용자의 핀 표시
+    if (panelView.type === 'user-profile' && userPinMarkers) {
+      return userPinMarkers;
+    }
     switch (activeTab) {
       case 'feed':
         return feedMarkers;
@@ -51,7 +60,6 @@ export function MapClient({
     }
   })();
 
-  // 현재 탭에 따라 리스트 데이터 결정
   const listData = (() => {
     switch (activeTab) {
       case 'feed':
@@ -67,18 +75,29 @@ export function MapClient({
   const handleTabChange = useCallback((tab: TabType) => {
     setActiveTab(tab);
     setPanelView({ type: tab });
+    setUserPinMarkers(null);
   }, []);
 
   const handlePinClick = useCallback((pinId: string) => {
     setPanelView({ type: 'pin-detail', pinId });
   }, []);
 
+  const handleAuthorClick = useCallback((username: string) => {
+    setPanelView({ type: 'user-profile', username });
+  }, []);
+
+  const handleUserPinsLoaded = useCallback((markers: GlobePinMarker[]) => {
+    setUserPinMarkers(markers);
+  }, []);
+
   const handleBack = useCallback(() => {
     setPanelView({ type: activeTab });
+    setUserPinMarkers(null);
   }, [activeTab]);
 
   const handleClose = useCallback(() => {
     setPanelView({ type: 'closed' });
+    setUserPinMarkers(null);
   }, []);
 
   const handleOpenPanel = useCallback(() => {
@@ -97,7 +116,11 @@ export function MapClient({
       <SidePanel
         view={panelView}
         onClose={handleClose}
-        onBack={panelView.type === 'pin-detail' || panelView.type === 'user-profile' ? handleBack : undefined}
+        onBack={
+          panelView.type === 'pin-detail' || panelView.type === 'user-profile'
+            ? handleBack
+            : undefined
+        }
       >
         {isListView && (
           <>
@@ -119,16 +142,20 @@ export function MapClient({
         )}
 
         {panelView.type === 'pin-detail' && (
-          <div className="p-4 text-center text-zinc-400 text-sm">
-            핀 상세 보기 (추후 구현)
-            <br />
-            <Link
-              href={`/pins/${panelView.pinId}`}
-              className="text-zinc-900 underline mt-2 inline-block"
-            >
-              전체 페이지로 보기
-            </Link>
-          </div>
+          <PanelPinDetail
+            pinId={panelView.pinId}
+            currentUserId={currentUserId}
+            onAuthorClick={handleAuthorClick}
+          />
+        )}
+
+        {panelView.type === 'user-profile' && (
+          <PanelUserProfile
+            username={panelView.username}
+            currentUserId={currentUserId}
+            onPinClick={handlePinClick}
+            onPinsLoaded={handleUserPinsLoaded}
+          />
         )}
       </SidePanel>
 
