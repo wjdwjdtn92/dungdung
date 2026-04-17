@@ -19,6 +19,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { LocationPicker } from './LocationPicker';
 import { PhotoUploader } from './PhotoUploader';
 import { TagInput } from './TagInput';
+import { TripSelect } from './TripSelect';
 import { VisibilitySelect } from './VisibilitySelect';
 
 interface PinFormProps {
@@ -48,12 +49,13 @@ export function PinForm({ mode = 'create', pinId, initialValues }: PinFormProps)
     },
   });
 
-  const [placeName, lat, lng, tags, visibility] = watch([
+  const [placeName, lat, lng, tags, visibility, tripId] = watch([
     'place_name',
     'lat',
     'lng',
     'tags',
     'visibility',
+    'trip_id',
   ]);
 
   function handleLocationSelect(result: {
@@ -194,6 +196,14 @@ export function PinForm({ mode = 'create', pinId, initialValues }: PinFormProps)
       <div className="space-y-1.5">
         <Label>태그</Label>
         <TagInput value={tags ?? []} onChange={(t) => setValue('tags', t)} />
+      </div>
+
+      {/* 트립 연결 */}
+      <div className="space-y-1.5">
+        <Label>
+          트립 <span className="text-zinc-400 font-normal">(선택)</span>
+        </Label>
+        <TripSelect value={tripId} onChange={(id) => setValue('trip_id', id)} />
       </div>
 
       {/* 공개 범위 */}
