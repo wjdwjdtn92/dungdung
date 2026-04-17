@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import Image from 'next/image'
 import { MapPin, Globe, Lock, Users } from 'lucide-react'
 import type { Metadata } from 'next'
+import { PinActions } from '@/components/pins/PinActions'
 
 interface Props {
   params: Promise<{ id: string }>
@@ -42,11 +43,13 @@ export default async function PinDetailPage({ params }: Props) {
   const { id } = await params
   const supabase = await createClient()
 
+  const { data: { user } } = await supabase.auth.getUser()
+
   // 핀 + 작성자 + 사진 + 태그 병렬 조회 (server-parallel-fetching)
-  const [{ data: pin }, { data: photos }, { data: pinTags }] = await Promise.all([
+  const [{ data: pin, error: pinError }, { data: photos }, { data: pinTags }] = await Promise.all([
     supabase
       .from('pins')
-      .select('*, users(id, username, display_name, avatar_url)')
+      .select('*, users!pins_user_id_fkey(id, username, display_name, avatar_url)')
       .eq('id', id)
       .single(),
     supabase
@@ -60,6 +63,7 @@ export default async function PinDetailPage({ params }: Props) {
       .eq('pin_id', id),
   ])
 
+  if (pinError) console.error('[pin detail] query error:', pinError)
   if (!pin) notFound()
 
   const author = pin.users as { id: string; username: string; display_name: string; avatar_url: string | null } | null
@@ -107,10 +111,13 @@ export default async function PinDetailPage({ params }: Props) {
         <div className="bg-white rounded-2xl border border-zinc-100 p-6 space-y-4">
           <div className="flex items-start justify-between gap-4">
             <h1 className="text-2xl font-bold text-zinc-900">{pin.title}</h1>
-            <span className="flex items-center gap-1 shrink-0 text-xs text-zinc-400 mt-1">
-              {VISIBILITY_ICON[pin.visibility as keyof typeof VISIBILITY_ICON]}
-              {VISIBILITY_LABEL[pin.visibility as keyof typeof VISIBILITY_LABEL]}
-            </span>
+            <div className="flex items-center gap-3 shrink-0 mt-1">
+              <span className="flex items-center gap-1 text-xs text-zinc-400">
+                {VISIBILITY_ICON[pin.visibility as keyof typeof VISIBILITY_ICON]}
+                {VISIBILITY_LABEL[pin.visibility as keyof typeof VISIBILITY_LABEL]}
+              </span>
+              {user?.id === pin.user_id && <PinActions pinId={id} />}
+            </div>
           </div>
 
           <div className="flex items-center gap-1.5 text-sm text-zinc-500">

@@ -79,6 +79,30 @@ export async function updatePin(pinId: string, values: Partial<PinFormValues>) {
     .eq('user_id', user.id)
 
   if (error) throw new Error(error.message)
+
+  // 태그 교체 (기존 pin_tags 삭제 후 재삽입)
+  if (tags !== undefined) {
+    await supabase.from('pin_tags').delete().eq('pin_id', pinId)
+
+    if (tags.length > 0) {
+      const tagNames = tags.map((t) => t.toLowerCase().trim())
+
+      await supabase
+        .from('tags')
+        .upsert(tagNames.map((name) => ({ name })), { onConflict: 'name', ignoreDuplicates: true })
+
+      const { data: tagRows } = await supabase
+        .from('tags')
+        .select('id, name')
+        .in('name', tagNames)
+
+      if (tagRows && tagRows.length > 0) {
+        await supabase
+          .from('pin_tags')
+          .insert(tagRows.map((t) => ({ pin_id: pinId, tag_id: t.id })))
+      }
+    }
+  }
 }
 
 export async function deletePin(pinId: string) {
@@ -93,5 +117,4 @@ export async function deletePin(pinId: string) {
     .eq('user_id', user.id)
 
   if (error) throw new Error(error.message)
-  redirect('/map')
 }

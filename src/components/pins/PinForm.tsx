@@ -9,7 +9,7 @@ import { Loader2 } from 'lucide-react'
 
 import type { Resolver } from 'react-hook-form'
 import { pinSchema, type PinFormValues, type PhotoPreview } from '@/types/pin'
-import { createPin, createPinPhotos } from '@/lib/pins/actions'
+import { createPin, createPinPhotos, updatePin } from '@/lib/pins/actions'
 import { createClient } from '@/lib/supabase/client'
 
 import { Button } from '@/components/ui/button'
@@ -21,14 +21,25 @@ import { PhotoUploader } from './PhotoUploader'
 import { TagInput } from './TagInput'
 import { VisibilitySelect } from './VisibilitySelect'
 
-export function PinForm() {
+interface PinFormProps {
+  mode?: 'create' | 'edit'
+  pinId?: string
+  initialValues?: Partial<PinFormValues>
+}
+
+export function PinForm({ mode = 'create', pinId, initialValues }: PinFormProps) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [photos, setPhotos] = useState<PhotoPreview[]>([])
 
   const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<PinFormValues>({
     resolver: zodResolver(pinSchema) as Resolver<PinFormValues>,
-    defaultValues: { visibility: 'public', tags: [], place_name: '' },
+    defaultValues: {
+      visibility: 'public',
+      tags: [],
+      place_name: '',
+      ...initialValues,
+    },
   })
 
   const [placeName, lat, lng, tags, visibility] = watch(['place_name', 'lat', 'lng', 'tags', 'visibility'])
@@ -42,7 +53,6 @@ export function PinForm() {
   }
 
   function handleExifLocation(exifLat: number, exifLng: number) {
-    // 이미 위치가 설정된 경우 덮어쓰지 않음
     if (lat) return
     toast.info('사진 GPS 정보로 위치가 자동 설정됐습니다. 검색으로 변경할 수 있어요.')
     setValue('lat', exifLat, { shouldValidate: true })
@@ -53,10 +63,17 @@ export function PinForm() {
   const onSubmit = (values: PinFormValues) => {
     startTransition(async () => {
       try {
-        // 1. 핀 생성
+        if (mode === 'edit' && pinId) {
+          await updatePin(pinId, values)
+          toast.success('핀이 수정됐습니다!')
+          router.push(`/pins/${pinId}`)
+          router.refresh()
+          return
+        }
+
+        // 생성 모드
         const pin = await createPin(values)
 
-        // 2. 사진 업로드
         if (photos.length > 0) {
           const supabase = createClient()
           const uploadedPhotos: Array<{ storagePath: string; order: number; exifLat?: number; exifLng?: number }> = []
@@ -91,22 +108,24 @@ export function PinForm() {
         toast.success('핀이 생성됐습니다!')
         router.push(`/pins/${pin.id}`)
       } catch (e) {
-        toast.error(e instanceof Error ? e.message : '핀 생성에 실패했습니다')
+        toast.error(e instanceof Error ? e.message : mode === 'edit' ? '핀 수정에 실패했습니다' : '핀 생성에 실패했습니다')
       }
     })
   }
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-      {/* 사진 */}
-      <div className="space-y-1.5">
-        <Label>사진 <span className="text-zinc-400 font-normal">(선택, 최대 10장)</span></Label>
-        <PhotoUploader
-          photos={photos}
-          onChange={setPhotos}
-          onExifLocation={handleExifLocation}
-        />
-      </div>
+      {/* 사진 (생성 모드에서만) */}
+      {mode === 'create' && (
+        <div className="space-y-1.5">
+          <Label>사진 <span className="text-zinc-400 font-normal">(선택, 최대 10장)</span></Label>
+          <PhotoUploader
+            photos={photos}
+            onChange={setPhotos}
+            onExifLocation={handleExifLocation}
+          />
+        </div>
+      )}
 
       {/* 제목 */}
       <div className="space-y-1.5">
@@ -149,7 +168,10 @@ export function PinForm() {
       </div>
 
       <Button type="submit" className="w-full" disabled={isPending}>
-        {isPending ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />저장 중...</> : '핀 만들기'}
+        {isPending
+          ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />{mode === 'edit' ? '저장 중...' : '저장 중...'}</>
+          : mode === 'edit' ? '수정 완료' : '핀 만들기'
+        }
       </Button>
     </form>
   )
