@@ -4,8 +4,9 @@
  * CesiumJS 3D 지구 컴포넌트 (CSR 전용)
  * DynamicGlobe에서 next/dynamic { ssr: false }로 로드됨
  *
- * webpack 번들링 대신 /public/cesium/Cesium.js를 런타임 script 태그로 로드.
- * 이유: CesiumJS 소스의 octal escape sequence가 webpack strict mode 번들에서 SyntaxError 유발
+ * Cesium을 webpack 번들링 없이 런타임 script 태그로 로드.
+ * - 로컬 dev: /cesium (copy-cesium.mjs로 public/cesium에 복사)
+ * - production: Cesium 공식 CDN (Vercel 배포 파일 제한 우회)
  */
 import { useEffect, useRef } from 'react';
 import type { GlobeOptions, GlobePinMarker } from './GlobeEngine';
@@ -15,7 +16,13 @@ interface CesiumGlobeProps extends GlobeOptions {
   className?: string;
 }
 
-/** /cesium/Cesium.js + CSS를 한 번만 로드하는 싱글턴 Promise */
+const CESIUM_VERSION = '1.140.0';
+const CESIUM_BASE =
+  process.env.NODE_ENV === 'production'
+    ? `https://cesium.com/downloads/cesiumjs/releases/${CESIUM_VERSION}/Build/Cesium`
+    : '/cesium';
+
+/** Cesium JS + CSS를 한 번만 로드하는 싱글턴 Promise */
 let cesiumLoadPromise: Promise<typeof import('cesium')> | null = null;
 
 function loadCesium(): Promise<typeof import('cesium')> {
@@ -23,27 +30,30 @@ function loadCesium(): Promise<typeof import('cesium')> {
 
   cesiumLoadPromise = new Promise((resolve, reject) => {
     // CSS
-    if (!document.querySelector('link[href="/cesium/Widgets/widgets.css"]')) {
+    const cssHref = `${CESIUM_BASE}/Widgets/widgets.css`;
+    if (!document.querySelector(`link[href="${cssHref}"]`)) {
       const link = document.createElement('link');
       link.rel = 'stylesheet';
-      link.href = '/cesium/Widgets/widgets.css';
+      link.href = cssHref;
       document.head.appendChild(link);
     }
 
     // 이미 로드된 경우
-    if ((window as // eslint-disable-next-line @typescript-eslint/no-explicit-any
-any).Cesium) {
-      resolve((window as // eslint-disable-next-line @typescript-eslint/no-explicit-any
-any).Cesium as typeof import('cesium'));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if ((window as any).Cesium) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      resolve((window as any).Cesium as typeof import('cesium'));
       return;
     }
 
     const script = document.createElement('script');
-    script.src = '/cesium/Cesium.js';
+    script.src = `${CESIUM_BASE}/Cesium.js`;
     script.async = true;
-    script.onload = () => resolve((window as // eslint-disable-next-line @typescript-eslint/no-explicit-any
-any).Cesium as typeof import('cesium'));
-    script.onerror = () => reject(new Error('Failed to load /cesium/Cesium.js'));
+    script.onload = () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      resolve((window as any).Cesium as typeof import('cesium'));
+    };
+    script.onerror = () => reject(new Error(`Failed to load Cesium from ${CESIUM_BASE}/Cesium.js`));
     document.head.appendChild(script);
   });
 
