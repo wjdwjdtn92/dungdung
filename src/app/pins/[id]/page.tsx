@@ -185,7 +185,7 @@ export default async function PinDetailPage({ params }: Props) {
                 <span className="text-sm text-zinc-400">@{author.username}</span>
               </Link>
             )}
-            <LikeButton pinId={id} initialLiked={liked} initialCount={likeCount ?? 0} />
+            <LikeButton pinId={id} initialLiked={liked} initialCount={likeCount ?? 0} currentUserId={user?.id ?? null} />
           </div>
         </div>
 

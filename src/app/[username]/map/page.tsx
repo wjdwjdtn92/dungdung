@@ -40,8 +40,6 @@ export default async function UserMapPage({ params }: Props) {
         trip_id, trips(id, title)`)
       .eq('user_id', profile.id)
       .eq('visibility', 'public')
-      .not('lat', 'is', null)
-      .not('lng', 'is', null)
       .order('visited_at', { ascending: false })
       .limit(200),
     supabase
@@ -59,8 +57,8 @@ export default async function UserMapPage({ params }: Props) {
     return {
       id: p.id,
       title: p.title,
-      lat: p.lat as number,
-      lng: p.lng as number,
+      lat: p.lat as number | null,
+      lng: p.lng as number | null,
       visited_at: p.visited_at,
       place_name: p.place_name,
       tags,

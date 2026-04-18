@@ -15,8 +15,8 @@ import type { GlobePinMarker } from '@/components/globe/GlobeEngine';
 interface PinData {
   id: string;
   title: string;
-  lat: number;
-  lng: number;
+  lat: number | null;
+  lng: number | null;
   visited_at: string;
   place_name: string;
   tags: string[];
@@ -40,7 +40,7 @@ export function UserMapClient({ profile, pins, allTags, trips, currentUserId }: 
   const [mapMode, setMapMode] = useState<MapMode>('3d');
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [selectedTripId, setSelectedTripId] = useState<string | null>(null);
-  const [panelView, setPanelView] = useState<PanelView>({ type: 'feed' }); // feed = 목록 뷰 재사용
+  const [panelView, setPanelView] = useState<PanelView>({ type: 'feed' });
 
   // 필터 적용
   const filteredPins = useMemo(() => {
@@ -51,13 +51,16 @@ export function UserMapClient({ profile, pins, allTags, trips, currentUserId }: 
     });
   }, [pins, selectedTag, selectedTripId]);
 
-  const markers: GlobePinMarker[] = filteredPins.map((p) => ({
-    id: p.id,
-    title: p.title,
-    lat: p.lat,
-    lng: p.lng,
-    visitedAt: p.visited_at,
-  }));
+  // lat/lng 있는 핀만 마커로 사용
+  const markers: GlobePinMarker[] = filteredPins
+    .filter((p): p is PinData & { lat: number; lng: number } => p.lat != null && p.lng != null)
+    .map((p) => ({
+      id: p.id,
+      title: p.title,
+      lat: p.lat,
+      lng: p.lng,
+      visitedAt: p.visited_at,
+    }));
 
   const handlePinClick = useCallback((pinId: string) => {
     setPanelView({ type: 'pin-detail', pinId });
@@ -89,106 +92,120 @@ export function UserMapClient({ profile, pins, allTags, trips, currentUserId }: 
         onBack={panelView.type === 'pin-detail' ? handleBack : undefined}
       >
         {isListView && (
-          <div className="space-y-4 pb-6">
-            {/* 프로필 헤더 */}
-            <div className="flex items-center gap-3 px-4 pt-3">
-              <div className="h-10 w-10 rounded-full bg-zinc-200 overflow-hidden shrink-0">
-                {profile.avatar_url && (
-                  <Image src={profile.avatar_url} alt={profile.display_name} width={40} height={40} />
-                )}
+          <div className="pb-6">
+            {/* 프로필 헤더 — 트렌디한 배너 스타일 */}
+            <div className="relative bg-gradient-to-br from-zinc-900 to-zinc-700 px-5 pt-5 pb-4">
+              <div className="flex items-end gap-3">
+                <div className="h-14 w-14 rounded-2xl bg-zinc-600 overflow-hidden ring-2 ring-white/20 shrink-0">
+                  {profile.avatar_url ? (
+                    <Image src={profile.avatar_url} alt={profile.display_name} width={56} height={56} className="object-cover" />
+                  ) : (
+                    <div className="h-full w-full flex items-center justify-center text-white text-xl font-bold">
+                      {profile.display_name[0]}
+                    </div>
+                  )}
+                </div>
+                <div className="pb-0.5">
+                  <p className="text-[11px] font-medium text-zinc-400 uppercase tracking-widest">여행 지도</p>
+                  <p className="text-lg font-bold text-white leading-tight">{profile.display_name}</p>
+                  <p className="text-xs text-zinc-400">@{profile.username}</p>
+                </div>
               </div>
-              <div>
-                <p className="font-semibold text-zinc-900">{profile.display_name}</p>
-                <p className="text-xs text-zinc-400">@{profile.username} · 핀 {filteredPins.length}개</p>
+              <div className="mt-3 flex items-center gap-3 text-xs text-zinc-400">
+                <span><strong className="text-white">{filteredPins.length}</strong> 핀</span>
+                {allTags.length > 0 && <span><strong className="text-white">{allTags.length}</strong> 태그</span>}
+                {trips.length > 0 && <span><strong className="text-white">{trips.length}</strong> 여행</span>}
               </div>
             </div>
 
-            {/* 태그 필터 */}
-            {allTags.length > 0 && (
-              <div className="px-4">
-                <p className="text-xs font-medium text-zinc-500 mb-2">태그</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {allTags.map((tag) => (
-                    <button
-                      key={tag}
-                      onClick={() => setSelectedTag(selectedTag === tag ? null : tag)}
-                      className={cn(
-                        'rounded-full px-2.5 py-1 text-xs font-medium transition-colors',
-                        selectedTag === tag
-                          ? 'bg-zinc-900 text-white'
-                          : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200',
-                      )}
-                    >
-                      #{tag}
-                    </button>
-                  ))}
+            <div className="space-y-4 pt-4">
+              {/* 태그 필터 */}
+              {allTags.length > 0 && (
+                <div className="px-4">
+                  <p className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider mb-2">태그</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {allTags.map((tag) => (
+                      <button
+                        key={tag}
+                        onClick={() => setSelectedTag(selectedTag === tag ? null : tag)}
+                        className={cn(
+                          'rounded-full px-2.5 py-1 text-xs font-medium transition-colors',
+                          selectedTag === tag
+                            ? 'bg-zinc-900 text-white'
+                            : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200',
+                        )}
+                      >
+                        #{tag}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
-
-            {/* 트립 필터 */}
-            {trips.length > 0 && (
-              <div className="px-4">
-                <p className="text-xs font-medium text-zinc-500 mb-2">여행</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {trips.map((trip) => (
-                    <button
-                      key={trip.id}
-                      onClick={() => setSelectedTripId(selectedTripId === trip.id ? null : trip.id)}
-                      className={cn(
-                        'rounded-full px-2.5 py-1 text-xs font-medium transition-colors',
-                        selectedTripId === trip.id
-                          ? 'bg-zinc-900 text-white'
-                          : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200',
-                      )}
-                    >
-                      {trip.title}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* 활성 필터 초기화 */}
-            {(selectedTag || selectedTripId) && (
-              <div className="px-4">
-                <button
-                  onClick={() => { setSelectedTag(null); setSelectedTripId(null); }}
-                  className="flex items-center gap-1 text-xs text-zinc-400 hover:text-zinc-600"
-                >
-                  <X className="h-3 w-3" />필터 초기화
-                </button>
-              </div>
-            )}
-
-            {/* 핀 목록 */}
-            <div className="px-4 space-y-1">
-              {filteredPins.length === 0 ? (
-                <p className="text-center py-8 text-sm text-zinc-400">
-                  {selectedTag || selectedTripId ? '해당 필터에 맞는 핀이 없어요' : '공개된 핀이 없어요'}
-                </p>
-              ) : (
-                filteredPins.map((pin) => (
-                  <button
-                    key={pin.id}
-                    onClick={() => handlePinClick(pin.id)}
-                    className="w-full flex items-start gap-3 p-2.5 rounded-xl hover:bg-zinc-50 text-left transition-colors"
-                  >
-                    <MapPin className="h-4 w-4 text-zinc-400 shrink-0 mt-0.5" />
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-zinc-900 truncate">{pin.title}</p>
-                      <p className="text-xs text-zinc-400 truncate">{pin.place_name}</p>
-                      {pin.tags.length > 0 && (
-                        <div className="flex gap-1 mt-1 flex-wrap">
-                          {pin.tags.slice(0, 3).map((tag) => (
-                            <span key={tag} className="text-[10px] text-zinc-400">#{tag}</span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </button>
-                ))
               )}
+
+              {/* 트립 필터 */}
+              {trips.length > 0 && (
+                <div className="px-4">
+                  <p className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider mb-2">여행</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {trips.map((trip) => (
+                      <button
+                        key={trip.id}
+                        onClick={() => setSelectedTripId(selectedTripId === trip.id ? null : trip.id)}
+                        className={cn(
+                          'rounded-full px-2.5 py-1 text-xs font-medium transition-colors',
+                          selectedTripId === trip.id
+                            ? 'bg-zinc-900 text-white'
+                            : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200',
+                        )}
+                      >
+                        {trip.title}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* 활성 필터 초기화 */}
+              {(selectedTag || selectedTripId) && (
+                <div className="px-4">
+                  <button
+                    onClick={() => { setSelectedTag(null); setSelectedTripId(null); }}
+                    className="flex items-center gap-1 text-xs text-zinc-400 hover:text-zinc-600"
+                  >
+                    <X className="h-3 w-3" />필터 초기화
+                  </button>
+                </div>
+              )}
+
+              {/* 핀 목록 */}
+              <div className="px-4 space-y-1">
+                {filteredPins.length === 0 ? (
+                  <p className="text-center py-8 text-sm text-zinc-400">
+                    {selectedTag || selectedTripId ? '해당 필터에 맞는 핀이 없어요' : '공개된 핀이 없어요'}
+                  </p>
+                ) : (
+                  filteredPins.map((pin) => (
+                    <button
+                      key={pin.id}
+                      onClick={() => handlePinClick(pin.id)}
+                      className="w-full flex items-start gap-3 p-2.5 rounded-xl hover:bg-zinc-50 text-left transition-colors"
+                    >
+                      <MapPin className="h-4 w-4 text-red-400 shrink-0 mt-0.5" />
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-zinc-900 truncate">{pin.title}</p>
+                        <p className="text-xs text-zinc-400 truncate">{pin.place_name}</p>
+                        {pin.tags.length > 0 && (
+                          <div className="flex gap-1 mt-1 flex-wrap">
+                            {pin.tags.slice(0, 3).map((tag) => (
+                              <span key={tag} className="text-[10px] text-zinc-400">#{tag}</span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </button>
+                  ))
+                )}
+              </div>
             </div>
           </div>
         )}
@@ -206,14 +223,14 @@ export function UserMapClient({ profile, pins, allTags, trips, currentUserId }: 
         <MapModeToggle mode={mapMode} onChange={setMapMode} />
       </div>
 
-      {/* 뒤로가기 */}
+      {/* 뒤로가기 버튼 */}
       <div className="absolute top-4 left-4 z-10">
         <Link
-          href={`/${profile.username}`}
+          href="/"
           className="flex items-center gap-1.5 px-3 py-2 bg-white/90 backdrop-blur-sm rounded-full shadow-md hover:bg-white text-sm font-medium text-zinc-700 transition-colors"
         >
           <ArrowLeft className="h-4 w-4" />
-          프로필
+          지도
         </Link>
       </div>
     </div>
