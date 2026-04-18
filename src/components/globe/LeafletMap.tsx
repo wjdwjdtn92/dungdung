@@ -34,12 +34,21 @@ export function LeafletMap({ pins = [], onPinClick, className }: LeafletMapProps
 
       // tap: false — Leaflet 커스텀 탭 에뮬레이터 비활성화 (모바일 오버레이 UI 클릭 충돌 방지)
       // @types/leaflet에 tap 옵션이 없어 타입 캐스팅 필요
+      // 위도: ±85.051129° (Web Mercator 한계, 극지방 회색 방지)
+      // 경도: ±18000° (50 world copies) → 실질적으로 무한 좌우 스크롤 허용
+      const worldBounds = L.latLngBounds(
+        L.latLng(-85.051129, -18000),
+        L.latLng(85.051129, 18000),
+      );
+
       const mapOptions = {
         center: [20, 0] as L.LatLngExpression,
         zoom: 2,
-        minZoom: 2,        // 너무 축소하면 회색 영역 과다 노출 방지
+        minZoom: 2,
         zoomControl: false,
-        worldCopyJump: true, // 지도 끝에서 반대편으로 자연스럽게 이어지도록
+        maxBounds: worldBounds,
+        maxBoundsViscosity: 1.0, // 위아래 경계에서 딱 멈춤
+        worldCopyJump: true,      // 경도 끝 도달 시 반대편으로 이어지도록
         tap: false,
       };
       const map = L.map(containerRef.current, mapOptions as L.MapOptions);
@@ -47,7 +56,6 @@ export function LeafletMap({ pins = [], onPinClick, className }: LeafletMapProps
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; OpenStreetMap contributors',
         maxZoom: 19,
-        noWrap: false, // 수평 방향 타일 반복 (기본값이지만 명시)
       }).addTo(map);
 
       // 컨테이너 크기를 정확히 반영 — 비동기 마운트 후 사이즈 재계산
