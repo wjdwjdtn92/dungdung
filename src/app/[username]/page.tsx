@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import { MapPin, Heart, MessageCircle } from 'lucide-react';
+import { MapPin, Heart, MessageCircle, Map } from 'lucide-react';
 import type { Metadata } from 'next';
 import { FollowButton } from '@/components/social/FollowButton';
 import { AppHeader } from '@/components/layout/AppHeader';
@@ -135,6 +135,19 @@ export default async function ProfilePage({ params }: Props) {
             </div>
           </div>
         </div>
+
+        {/* 지도로 보기 버튼 */}
+        {pins && pins.length > 0 && (
+          <div className="mb-4">
+            <Link
+              href={`/${profile.username}/map`}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-zinc-900 text-white text-sm font-medium rounded-full hover:bg-zinc-700 transition-colors"
+            >
+              <Map className="h-4 w-4" />
+              지도로 보기
+            </Link>
+          </div>
+        )}
 
         {/* 핀 목록 */}
         {pins && pins.length > 0 ? (
