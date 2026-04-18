@@ -25,7 +25,7 @@ export function PinListItem({ pin, onClick }: PinListItemProps) {
   return (
     <button
       onClick={() => onClick(pin.id)}
-      className="w-full flex items-center gap-3 p-3 rounded-xl text-left hover:bg-zinc-50 transition-colors"
+      className="w-full flex items-center gap-3 p-3 rounded-xl text-left hover:bg-zinc-50 transition-colors cursor-pointer"
     >
       {pin.cover_photo && (
         <div className="relative h-14 w-14 rounded-lg bg-zinc-100 overflow-hidden shrink-0">

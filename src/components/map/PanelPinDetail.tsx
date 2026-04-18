@@ -102,19 +102,24 @@ export function PanelPinDetail({ pinId, currentUserId, onAuthorClick }: PanelPin
 
         {/* 작성자 + 좋아요 */}
         <div className="flex items-center justify-between pt-2 border-t border-zinc-100">
-          {pin.author && (
-            <button
-              onClick={() => onAuthorClick?.(pin.author!.username)}
-              className="flex items-center gap-2 hover:opacity-80"
-            >
-              <div className="h-7 w-7 rounded-full bg-zinc-200 overflow-hidden">
-                {pin.author.avatar_url && (
-                  <Image src={pin.author.avatar_url} alt={pin.author.display_name} width={28} height={28} />
-                )}
-              </div>
-              <span className="text-sm text-zinc-600">{pin.author.display_name}</span>
-            </button>
-          )}
+          {pin.author && (() => {
+            const isOwn = currentUserId === pin.user_id;
+            return (
+              <button
+                onClick={() => onAuthorClick?.(pin.author!.username)}
+                className="flex items-center gap-2 hover:opacity-80 cursor-pointer"
+              >
+                <div className="h-7 w-7 rounded-full bg-zinc-200 overflow-hidden">
+                  {pin.author.avatar_url && (
+                    <Image src={pin.author.avatar_url} alt={pin.author.display_name} width={28} height={28} />
+                  )}
+                </div>
+                <span className={isOwn ? 'text-sm font-medium text-blue-600' : 'text-sm text-zinc-600'}>
+                  {isOwn ? '나' : pin.author.display_name}
+                </span>
+              </button>
+            );
+          })()}
           <LikeButton pinId={pin.id} initialLiked={pin.liked} initialCount={pin.like_count} currentUserId={currentUserId} />
         </div>
 

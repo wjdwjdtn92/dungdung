@@ -1,11 +1,19 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useTransition } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Plus, Menu, Settings, Bell } from 'lucide-react';
+import { Plus, Menu, Settings, Bell, LogOut, Map } from 'lucide-react';
 import { LoginButton } from '@/components/auth/LoginButton';
 import { useUIStore } from '@/store/ui';
+import { signOut } from '@/lib/supabase/auth';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { DynamicGlobe } from '@/components/globe/DynamicGlobe';
 import { DynamicLeaflet } from '@/components/globe/DynamicLeaflet';
 import type { GlobePinMarker } from '@/components/globe/GlobeEngine';
@@ -114,6 +122,7 @@ export function MapClient({
 
   const openLoginModal = useUIStore((s) => s.openLoginModal);
   const unreadCount = useUIStore((s) => s.unreadCount);
+  const [, startSignOutTransition] = useTransition();
 
   const isListView =
     panelView.type === 'feed' || panelView.type === 'explore' || panelView.type === 'my-pins';
@@ -199,20 +208,38 @@ export function MapClient({
                 </span>
               )}
             </Link>
-            <Link
-              href="/settings"
-              className="p-2.5 bg-white/90 backdrop-blur-sm rounded-full shadow-md hover:bg-white transition-colors"
-            >
-              <Settings className="h-4 w-4 text-zinc-700" />
-            </Link>
-            <Link
-              href={`/${user!.username}`}
-              className="h-9 w-9 rounded-full bg-zinc-200 overflow-hidden shadow-md"
-            >
-              {user!.avatar_url && (
-                <Image src={user!.avatar_url} alt={user!.display_name} width={36} height={36} />
-              )}
-            </Link>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="h-9 w-9 rounded-full bg-zinc-200 overflow-hidden shadow-md cursor-pointer hover:ring-2 hover:ring-white/80 transition-all">
+                  {user!.avatar_url ? (
+                    <Image src={user!.avatar_url} alt={user!.display_name} width={36} height={36} />
+                  ) : (
+                    <span className="flex items-center justify-center h-full text-sm font-bold text-zinc-600">
+                      {user!.display_name[0]}
+                    </span>
+                  )}
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-44">
+                <DropdownMenuItem asChild>
+                  <Link href={`/${user!.username}/map`} className="cursor-pointer flex items-center gap-2">
+                    <Map className="h-4 w-4" />내 지도
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/settings" className="cursor-pointer flex items-center gap-2">
+                    <Settings className="h-4 w-4" />설정
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  className="cursor-pointer flex items-center gap-2 text-red-500 focus:text-red-500"
+                  onClick={() => startSignOutTransition(() => signOut())}
+                >
+                  <LogOut className="h-4 w-4" />로그아웃
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </>
         ) : (
           <div className="bg-white/90 backdrop-blur-sm rounded-lg shadow-md overflow-hidden">

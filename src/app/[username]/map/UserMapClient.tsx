@@ -106,7 +106,9 @@ export function UserMapClient({ profile, pins, allTags, trips, currentUserId }: 
                   )}
                 </div>
                 <div className="pb-0.5">
-                  <p className="text-[11px] font-medium text-zinc-400 uppercase tracking-widest">여행 지도</p>
+                  <p className="text-[11px] font-medium text-zinc-400 uppercase tracking-widest">
+                    {currentUserId === profile.id ? '✦ 내 여행 지도' : '여행 지도'}
+                  </p>
                   <p className="text-lg font-bold text-white leading-tight">{profile.display_name}</p>
                   <p className="text-xs text-zinc-400">@{profile.username}</p>
                 </div>

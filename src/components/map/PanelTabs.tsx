@@ -33,7 +33,7 @@ export function PanelTabs({ active, onChange, isLoggedIn }: PanelTabsProps) {
             key={tab.key}
             onClick={() => onChange(tab.key)}
             className={cn(
-              'flex-1 flex items-center justify-center gap-1.5 py-3 text-xs font-medium transition-colors',
+              'flex-1 flex items-center justify-center gap-1.5 py-3 text-xs font-medium transition-colors cursor-pointer',
               isActive
                 ? 'text-zinc-900 border-b-2 border-zinc-900'
                 : 'text-zinc-400 hover:text-zinc-600',
