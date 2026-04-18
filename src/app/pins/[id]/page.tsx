@@ -19,18 +19,26 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   const { data: pin } = await supabase
     .from('pins')
-    .select('title, place_name, body')
+    .select('title, place_name, body, pin_photos(storage_path, order)')
     .eq('id', id)
     .single();
 
   if (!pin) return { title: '핀을 찾을 수 없습니다' };
 
+  const desc = pin.body?.slice(0, 160) ?? `${pin.place_name}에서의 여행 기록`;
+  const photos = (pin.pin_photos as Array<{ storage_path: string; order: number }> | null) ?? [];
+  const sorted = [...photos].sort((a, b) => a.order - b.order);
+  const ogImage = sorted[0]
+    ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/pin-photos/${sorted[0].storage_path}?width=1200&quality=80`
+    : undefined;
+
   return {
     title: pin.title,
-    description: pin.body?.slice(0, 160) ?? `${pin.place_name}에서의 여행 기록`,
+    description: desc,
     openGraph: {
       title: pin.title,
-      description: pin.body?.slice(0, 160) ?? `${pin.place_name}에서의 여행 기록`,
+      description: desc,
+      ...(ogImage && { images: [{ url: ogImage, width: 1200, height: 630 }] }),
     },
   };
 }
