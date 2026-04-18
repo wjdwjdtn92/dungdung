@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useCallback, useTransition } from 'react';
+import { useState, useCallback, useTransition, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Plus, Menu, Settings, Bell, LogOut, Map, User } from 'lucide-react';
-import { LoginButton } from '@/components/auth/LoginButton';
 import { useUIStore } from '@/store/ui';
 import { signOut } from '@/lib/supabase/auth';
 import {
@@ -133,6 +133,19 @@ export function MapClient({
     setPanelView({ type: activeTab });
   }, [activeTab]);
 
+  const router = useRouter();
+
+  // 유저 프로필 패널 벗어나면 ?user= 쿼리 파라미터 제거
+  useEffect(() => {
+    if (panelView.type !== 'user-profile') {
+      const url = new URL(window.location.href);
+      if (url.searchParams.has('user')) {
+        url.searchParams.delete('user');
+        router.replace(url.pathname + (url.search || ''), { scroll: false });
+      }
+    }
+  }, [panelView.type, router]);
+
   const openLoginModal = useUIStore((s) => s.openLoginModal);
   const unreadCount = useUIStore((s) => s.unreadCount);
   const [, startSignOutTransition] = useTransition();
@@ -205,7 +218,7 @@ export function MapClient({
       {/* 유저 프로필 뷰 시 하단 배지 */}
       {panelView.type === 'user-profile' && (
         <div className="absolute bottom-20 left-1/2 -translate-x-1/2 z-10 sm:bottom-6 pointer-events-none">
-          <div className="flex items-center gap-2 bg-black/50 backdrop-blur-md text-white px-3.5 py-2 rounded-full shadow-lg border border-white/10">
+          <div className="flex items-center gap-2 bg-black/50 backdrop-blur-md text-white px-3.5 py-2 rounded-full shadow-lg">
             {viewingUser?.avatar_url ? (
               <Image src={viewingUser.avatar_url} alt={viewingUser.display_name} width={22} height={22} className="rounded-full ring-1 ring-white/30" />
             ) : (
@@ -280,9 +293,12 @@ export function MapClient({
             </DropdownMenu>
           </>
         ) : (
-          <div className="bg-white/90 backdrop-blur-sm rounded-lg shadow-md overflow-hidden">
-            <LoginButton size="sm" />
-          </div>
+          <button
+            onClick={openLoginModal}
+            className="px-3.5 py-2 bg-white/90 backdrop-blur-sm rounded-full shadow-md hover:bg-white text-sm font-medium text-zinc-700 transition-colors cursor-pointer"
+          >
+            로그인
+          </button>
         )}
       </div>
 

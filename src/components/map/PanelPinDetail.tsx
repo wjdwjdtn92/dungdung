@@ -153,6 +153,7 @@ export function PanelPinDetail({ pinId, currentUserId, onAuthorClick }: PanelPin
           pinId={pin.id}
           initialComments={comments}
           currentUserId={currentUserId}
+          onAuthorClick={onAuthorClick}
         />
       </div>
     </div>

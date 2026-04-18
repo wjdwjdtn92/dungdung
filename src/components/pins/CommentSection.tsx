@@ -28,6 +28,7 @@ interface CommentSectionProps {
   pinId: string;
   initialComments: CommentData[];
   currentUserId: string | null;
+  onAuthorClick?: (username: string) => void;
 }
 
 function timeAgo(dateStr: string) {
@@ -46,6 +47,7 @@ export function CommentSection({
   pinId,
   initialComments,
   currentUserId,
+  onAuthorClick,
 }: CommentSectionProps) {
   const [comments, setComments] = useState(initialComments);
   const [body, setBody] = useState('');
@@ -99,15 +101,25 @@ export function CommentSection({
             const username = comment.author?.username;
             return (
               <div key={comment.id} className="flex gap-2.5 group">
-                {/* 아바타 — 클릭 시 유저 지도로 이동 */}
+                {/* 아바타 — 클릭 시 유저 프로필 */}
                 {username ? (
-                  <Link href={`/${username}/map`} className="shrink-0 mt-0.5 cursor-pointer">
-                    <div className="h-7 w-7 rounded-full bg-zinc-200 overflow-hidden">
-                      {comment.author?.avatar_url && (
-                        <Image src={comment.author.avatar_url} alt={comment.author.display_name} width={28} height={28} />
-                      )}
-                    </div>
-                  </Link>
+                  onAuthorClick ? (
+                    <button onClick={() => onAuthorClick(username)} className="shrink-0 mt-0.5 cursor-pointer">
+                      <div className="h-7 w-7 rounded-full bg-zinc-200 overflow-hidden">
+                        {comment.author?.avatar_url && (
+                          <Image src={comment.author.avatar_url} alt={comment.author.display_name} width={28} height={28} />
+                        )}
+                      </div>
+                    </button>
+                  ) : (
+                    <Link href={`/?user=${username}`} className="shrink-0 mt-0.5 cursor-pointer">
+                      <div className="h-7 w-7 rounded-full bg-zinc-200 overflow-hidden">
+                        {comment.author?.avatar_url && (
+                          <Image src={comment.author.avatar_url} alt={comment.author.display_name} width={28} height={28} />
+                        )}
+                      </div>
+                    </Link>
+                  )
                 ) : (
                   <div className="h-7 w-7 rounded-full bg-zinc-200 overflow-hidden shrink-0 mt-0.5" />
                 )}
@@ -115,9 +127,15 @@ export function CommentSection({
                 <div className="flex-1 min-w-0">
                   <div className="flex items-baseline gap-2">
                     {username ? (
-                      <Link href={`/${username}/map`} className="text-sm font-medium text-zinc-800 cursor-pointer hover:underline">
-                        {comment.author?.display_name ?? '알 수 없음'}
-                      </Link>
+                      onAuthorClick ? (
+                        <button onClick={() => onAuthorClick(username)} className="text-sm font-medium text-zinc-800 cursor-pointer hover:underline">
+                          {comment.author?.display_name ?? '알 수 없음'}
+                        </button>
+                      ) : (
+                        <Link href={`/?user=${username}`} className="text-sm font-medium text-zinc-800 cursor-pointer hover:underline">
+                          {comment.author?.display_name ?? '알 수 없음'}
+                        </Link>
+                      )
                     ) : (
                       <span className="text-sm font-medium text-zinc-800">{comment.author?.display_name ?? '알 수 없음'}</span>
                     )}
