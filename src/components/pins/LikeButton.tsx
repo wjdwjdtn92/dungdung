@@ -3,8 +3,8 @@
 import { useState, useTransition } from 'react';
 import { Heart } from 'lucide-react';
 import { likePin, unlikePin } from '@/lib/social/actions';
-import { signInWithGoogle } from '@/lib/supabase/auth';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 interface LikeButtonProps {
   pinId: string;
@@ -20,7 +20,9 @@ export function LikeButton({ pinId, initialLiked, initialCount, currentUserId }:
 
   function toggle() {
     if (!currentUserId) {
-      signInWithGoogle();
+      toast('좋아요는 로그인 후 가능합니다', {
+        action: { label: '로그인', onClick: () => window.location.href = '/' },
+      });
       return;
     }
 
