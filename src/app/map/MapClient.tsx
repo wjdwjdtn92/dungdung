@@ -295,7 +295,7 @@ export function MapClient({
         ) : (
           <button
             onClick={openLoginModal}
-            className="px-3.5 py-2 bg-white/90 backdrop-blur-sm rounded-full shadow-md hover:bg-white text-sm font-medium text-zinc-700 transition-colors cursor-pointer"
+            className="px-4 py-2 bg-white/90 backdrop-blur-sm rounded-xl shadow-md hover:bg-white text-sm font-semibold text-zinc-700 transition-colors cursor-pointer whitespace-nowrap"
           >
             로그인
           </button>
