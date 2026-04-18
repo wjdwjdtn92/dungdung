@@ -12,6 +12,9 @@ interface UIState {
   globe: GlobeState;
   isCreatePinOpen: boolean;
   setCreatePinOpen: (open: boolean) => void;
+  isLoginModalOpen: boolean;
+  openLoginModal: () => void;
+  closeLoginModal: () => void;
 }
 
 export const useUIStore = create<UIState>((set) => ({
@@ -23,4 +26,7 @@ export const useUIStore = create<UIState>((set) => ({
   },
   isCreatePinOpen: false,
   setCreatePinOpen: (open) => set({ isCreatePinOpen: open }),
+  isLoginModalOpen: false,
+  openLoginModal: () => set({ isLoginModalOpen: true }),
+  closeLoginModal: () => set({ isLoginModalOpen: false }),
 }));

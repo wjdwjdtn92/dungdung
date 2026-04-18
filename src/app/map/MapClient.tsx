@@ -5,6 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Plus, Menu, Settings, Bell } from 'lucide-react';
 import { LoginButton } from '@/components/auth/LoginButton';
+import { useUIStore } from '@/store/ui';
 import { DynamicGlobe } from '@/components/globe/DynamicGlobe';
 import { DynamicLeaflet } from '@/components/globe/DynamicLeaflet';
 import type { GlobePinMarker } from '@/components/globe/GlobeEngine';
@@ -109,6 +110,8 @@ export function MapClient({
   const handleOpenPanel = useCallback(() => {
     setPanelView({ type: activeTab });
   }, [activeTab]);
+
+  const openLoginModal = useUIStore((s) => s.openLoginModal);
 
   const isListView =
     panelView.type === 'feed' || panelView.type === 'explore' || panelView.type === 'my-pins';
@@ -221,14 +224,21 @@ export function MapClient({
         </button>
       )}
 
-      {/* 새 핀 만들기 (로그인 사용자만) */}
-      {isLoggedIn && (
+      {/* 새 핀 만들기 */}
+      {isLoggedIn ? (
         <Link
           href="/pins/new"
           className="absolute bottom-8 right-6 z-10 flex items-center gap-2 bg-white text-zinc-900 font-medium text-sm px-4 py-2.5 rounded-full shadow-lg hover:bg-zinc-100 transition-colors"
         >
           <Plus className="h-4 w-4" />핀 만들기
         </Link>
+      ) : (
+        <button
+          onClick={openLoginModal}
+          className="absolute bottom-8 right-6 z-10 flex items-center gap-2 bg-white text-zinc-900 font-medium text-sm px-4 py-2.5 rounded-full shadow-lg hover:bg-zinc-100 transition-colors"
+        >
+          <Plus className="h-4 w-4" />핀 만들기
+        </button>
       )}
     </div>
   );

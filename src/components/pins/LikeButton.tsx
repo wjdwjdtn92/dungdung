@@ -3,8 +3,8 @@
 import { useState, useTransition } from 'react';
 import { Heart } from 'lucide-react';
 import { likePin, unlikePin } from '@/lib/social/actions';
+import { useUIStore } from '@/store/ui';
 import { cn } from '@/lib/utils';
-import { toast } from 'sonner';
 
 interface LikeButtonProps {
   pinId: string;
@@ -17,12 +17,11 @@ export function LikeButton({ pinId, initialLiked, initialCount, currentUserId }:
   const [liked, setLiked] = useState(initialLiked);
   const [count, setCount] = useState(initialCount);
   const [isPending, startTransition] = useTransition();
+  const openLoginModal = useUIStore((s) => s.openLoginModal);
 
   function toggle() {
     if (!currentUserId) {
-      toast('좋아요는 로그인 후 가능합니다', {
-        action: { label: '로그인', onClick: () => window.location.href = '/' },
-      });
+      openLoginModal();
       return;
     }
 
