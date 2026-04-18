@@ -6,6 +6,7 @@ import { Loader2, Send, Trash2 } from 'lucide-react';
 import { createComment, deleteComment } from '@/lib/social/actions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useUIStore } from '@/store/ui';
 
 interface CommentAuthor {
   id: string;
@@ -50,6 +51,7 @@ export function CommentSection({
   const [comments, setComments] = useState(initialComments);
   const [body, setBody] = useState('');
   const [isPending, startTransition] = useTransition();
+  const openLoginModal = useUIStore((s) => s.openLoginModal);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -128,7 +130,7 @@ export function CommentSection({
         </div>
       )}
 
-      {currentUserId && (
+      {currentUserId ? (
         <form onSubmit={handleSubmit} className="flex gap-2">
           <Input
             value={body}
@@ -145,6 +147,13 @@ export function CommentSection({
             )}
           </Button>
         </form>
+      ) : (
+        <button
+          onClick={openLoginModal}
+          className="w-full py-2.5 text-sm text-zinc-400 border border-dashed border-zinc-200 rounded-lg hover:border-zinc-300 hover:text-zinc-500 transition-colors"
+        >
+          로그인하고 댓글 달기
+        </button>
       )}
     </div>
   );

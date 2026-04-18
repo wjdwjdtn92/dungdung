@@ -115,7 +115,7 @@ export function PanelPinDetail({ pinId, currentUserId, onAuthorClick }: PanelPin
               <span className="text-sm text-zinc-600">{pin.author.display_name}</span>
             </button>
           )}
-          <LikeButton pinId={pin.id} initialLiked={pin.liked} initialCount={pin.like_count} />
+          <LikeButton pinId={pin.id} initialLiked={pin.liked} initialCount={pin.like_count} currentUserId={currentUserId} />
         </div>
 
         {/* 본문 */}
