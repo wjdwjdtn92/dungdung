@@ -11,11 +11,12 @@ import { CommentSection, type CommentData } from '@/components/pins/CommentSecti
 interface PanelPinDetailProps {
   pinId: string;
   currentUserId: string | null;
+  onAuthorClick?: (username: string) => void;
 }
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 
-export function PanelPinDetail({ pinId, currentUserId }: PanelPinDetailProps) {
+export function PanelPinDetail({ pinId, currentUserId, onAuthorClick }: PanelPinDetailProps) {
   const [pin, setPin] = useState<PinDetail | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -113,17 +114,31 @@ export function PanelPinDetail({ pinId, currentUserId }: PanelPinDetailProps) {
         {/* 작성자 + 좋아요 */}
         <div className="flex items-center justify-between pt-2 border-t border-zinc-100">
           {pin.author && (
-            <Link
-              href={`/${pin.author.username}/map`}
-              className="flex items-center gap-2 hover:opacity-80 cursor-pointer"
-            >
-              <div className="h-7 w-7 rounded-full bg-zinc-200 overflow-hidden">
-                {pin.author.avatar_url && (
-                  <Image src={pin.author.avatar_url} alt={pin.author.display_name} width={28} height={28} />
-                )}
-              </div>
-              <span className="text-sm text-zinc-600">{pin.author.display_name}</span>
-            </Link>
+            onAuthorClick ? (
+              <button
+                onClick={() => onAuthorClick(pin.author!.username)}
+                className="flex items-center gap-2 hover:opacity-80 cursor-pointer"
+              >
+                <div className="h-7 w-7 rounded-full bg-zinc-200 overflow-hidden">
+                  {pin.author.avatar_url && (
+                    <Image src={pin.author.avatar_url} alt={pin.author.display_name} width={28} height={28} />
+                  )}
+                </div>
+                <span className="text-sm text-zinc-600">{pin.author.display_name}</span>
+              </button>
+            ) : (
+              <Link
+                href={`/${pin.author.username}/map`}
+                className="flex items-center gap-2 hover:opacity-80 cursor-pointer"
+              >
+                <div className="h-7 w-7 rounded-full bg-zinc-200 overflow-hidden">
+                  {pin.author.avatar_url && (
+                    <Image src={pin.author.avatar_url} alt={pin.author.display_name} width={28} height={28} />
+                  )}
+                </div>
+                <span className="text-sm text-zinc-600">{pin.author.display_name}</span>
+              </Link>
+            )
           )}
           <LikeButton pinId={pin.id} initialLiked={pin.liked} initialCount={pin.like_count} currentUserId={currentUserId} />
         </div>

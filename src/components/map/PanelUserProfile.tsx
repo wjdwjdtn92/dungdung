@@ -12,6 +12,7 @@ interface PanelUserProfileProps {
   currentUserId: string | null;
   onPinClick: (pinId: string) => void;
   onPinsLoaded?: (markers: GlobePinMarker[]) => void;
+  onProfileLoaded?: (profile: { display_name: string; avatar_url: string | null }) => void;
 }
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -21,6 +22,7 @@ export function PanelUserProfile({
   currentUserId,
   onPinClick,
   onPinsLoaded,
+  onProfileLoaded,
 }: PanelUserProfileProps) {
   const [data, setData] = useState<UserPublicPins | null>(null);
   const [loading, setLoading] = useState(true);
@@ -30,8 +32,8 @@ export function PanelUserProfile({
     getUserPublicPins(username).then((result) => {
       setData(result);
       setLoading(false);
-      if (result && onPinsLoaded) {
-        onPinsLoaded(
+      if (result) {
+        onPinsLoaded?.(
           result.pins.map((p) => ({
             id: p.id,
             title: p.title,
@@ -40,6 +42,7 @@ export function PanelUserProfile({
             visitedAt: p.visited_at,
           })),
         );
+        onProfileLoaded?.({ display_name: result.user.display_name, avatar_url: result.user.avatar_url });
       }
     });
   }, [username, onPinsLoaded]);

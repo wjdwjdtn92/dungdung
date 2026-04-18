@@ -3,7 +3,7 @@
 import { useState, useCallback, useTransition } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Plus, Menu, Settings, Bell, LogOut, Map } from 'lucide-react';
+import { Plus, Menu, Settings, Bell, LogOut, Map, User } from 'lucide-react';
 import { LoginButton } from '@/components/auth/LoginButton';
 import { useUIStore } from '@/store/ui';
 import { signOut } from '@/lib/supabase/auth';
@@ -39,6 +39,7 @@ interface MapClientProps {
     avatar_url: string | null;
   } | null;
   unreadCount: number;
+  initialUser?: string | null;
 }
 
 export function MapClient({
@@ -51,13 +52,17 @@ export function MapClient({
   currentUserId,
   user,
   unreadCount: initialUnreadCount,
+  initialUser,
 }: MapClientProps) {
   const isLoggedIn = !!user;
   const defaultTab: TabType = isLoggedIn ? 'my-pins' : 'explore';
 
-  const [panelView, setPanelView] = useState<PanelView>({ type: defaultTab });
+  const [panelView, setPanelView] = useState<PanelView>(
+    initialUser ? { type: 'user-profile', username: initialUser } : { type: defaultTab },
+  );
   const [activeTab, setActiveTab] = useState<TabType>(defaultTab);
   const [userPinMarkers, setUserPinMarkers] = useState<GlobePinMarker[] | null>(null);
+  const [viewingUser, setViewingUser] = useState<{ display_name: string; avatar_url: string | null } | null>(null);
   const [mapMode, setMapMode] = useState<MapMode>('3d');
 
   // 현재 뷰에 따라 지도에 표시할 핀 결정
@@ -98,19 +103,30 @@ export function MapClient({
     setPanelView({ type: 'pin-detail', pinId });
   }, []);
 
+  const handleAuthorClick = useCallback((username: string) => {
+    setPanelView({ type: 'user-profile', username });
+    setUserPinMarkers(null);
+    setViewingUser(null);
+  }, []);
 
   const handleUserPinsLoaded = useCallback((markers: GlobePinMarker[]) => {
     setUserPinMarkers(markers);
   }, []);
 
+  const handleProfileLoaded = useCallback((profile: { display_name: string; avatar_url: string | null }) => {
+    setViewingUser(profile);
+  }, []);
+
   const handleBack = useCallback(() => {
     setPanelView({ type: activeTab });
     setUserPinMarkers(null);
+    setViewingUser(null);
   }, [activeTab]);
 
   const handleClose = useCallback(() => {
     setPanelView({ type: 'closed' });
     setUserPinMarkers(null);
+    setViewingUser(null);
   }, []);
 
   const handleOpenPanel = useCallback(() => {
@@ -171,6 +187,7 @@ export function MapClient({
           <PanelPinDetail
             pinId={panelView.pinId}
             currentUserId={currentUserId}
+            onAuthorClick={handleAuthorClick}
           />
         )}
 
@@ -180,9 +197,27 @@ export function MapClient({
             currentUserId={currentUserId}
             onPinClick={handlePinClick}
             onPinsLoaded={handleUserPinsLoaded}
+            onProfileLoaded={handleProfileLoaded}
           />
         )}
       </SidePanel>
+
+      {/* 유저 프로필 뷰 시 하단 배지 */}
+      {panelView.type === 'user-profile' && (
+        <div className="absolute bottom-20 left-1/2 -translate-x-1/2 z-10 sm:bottom-6 pointer-events-none">
+          <div className="flex items-center gap-2 bg-black/50 backdrop-blur-md text-white px-3.5 py-2 rounded-full shadow-lg border border-white/10">
+            {viewingUser?.avatar_url ? (
+              <Image src={viewingUser.avatar_url} alt={viewingUser.display_name} width={22} height={22} className="rounded-full ring-1 ring-white/30" />
+            ) : (
+              <div className="h-[22px] w-[22px] rounded-full bg-zinc-600 flex items-center justify-center text-[10px] font-bold text-white">
+                {(viewingUser?.display_name ?? panelView.username)[0].toUpperCase()}
+              </div>
+            )}
+            <span className="text-sm font-semibold">{viewingUser?.display_name ?? `@${panelView.username}`}</span>
+            <span className="text-xs text-white/60">의 지도</span>
+          </div>
+        </div>
+      )}
 
       {/* 3D/2D 토글 */}
       <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 sm:bottom-auto sm:top-4 sm:left-auto sm:right-1/2 sm:translate-x-1/2">
@@ -217,10 +252,17 @@ export function MapClient({
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-44">
-                <DropdownMenuItem asChild>
-                  <Link href={`/${user!.username}/map`} className="cursor-pointer flex items-center gap-2">
-                    <Map className="h-4 w-4" />내 지도
-                  </Link>
+                <DropdownMenuItem
+                  className="cursor-pointer flex items-center gap-2"
+                  onClick={() => handleTabChange('my-pins')}
+                >
+                  <Map className="h-4 w-4" />내 핀
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="cursor-pointer flex items-center gap-2"
+                  onClick={() => handleAuthorClick(user!.username)}
+                >
+                  <User className="h-4 w-4" />내 프로필
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link href="/settings" className="cursor-pointer flex items-center gap-2">

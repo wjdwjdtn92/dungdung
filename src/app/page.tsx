@@ -50,7 +50,12 @@ const PIN_SELECT = `id, title, lat, lng, place_name, visited_at,
   likes(count),
   comments(count)`;
 
-export default async function HomePage() {
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ user?: string }>;
+}) {
+  const { user: initialUser } = await searchParams;
   const supabase = await createClient();
 
   // 인증 체크 + 탐색 핀 병렬 로드
@@ -86,6 +91,7 @@ export default async function HomePage() {
         currentUserId={null}
         user={null}
         unreadCount={0}
+        initialUser={initialUser}
       />
     );
   }
@@ -133,6 +139,7 @@ export default async function HomePage() {
       currentUserId={user.id}
       user={profile ?? null}
       unreadCount={unreadCount}
+      initialUser={initialUser}
     />
   );
 }

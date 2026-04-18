@@ -40,5 +40,5 @@ export default async function ProfilePage({ params }: Props) {
 
   if (!profile) notFound();
 
-  redirect(`/${username}/map`);
+  redirect(`/?user=${username}`);
 }
