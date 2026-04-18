@@ -1,15 +1,23 @@
 'use client';
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useTransition } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowLeft, MapPin, X } from 'lucide-react';
+import { ArrowLeft, MapPin, X, Menu, Map, Settings, LogOut } from 'lucide-react';
 import { DynamicGlobe } from '@/components/globe/DynamicGlobe';
 import { DynamicLeaflet } from '@/components/globe/DynamicLeaflet';
 import { MapModeToggle, type MapMode } from '@/components/map/MapModeToggle';
 import { SidePanel, type PanelView } from '@/components/map/SidePanel';
 import { PanelPinDetail } from '@/components/map/PanelPinDetail';
 import { FollowButton } from '@/components/social/FollowButton';
+import { signOut } from '@/lib/supabase/auth';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import type { GlobePinMarker } from '@/components/globe/GlobeEngine';
 
@@ -21,7 +29,7 @@ interface PinData {
   visited_at: string;
   place_name: string;
   tags: string[];
-  trip: { id: string; title: string } | null;
+  tripId: string | null;
 }
 
 interface UserMapClientProps {
@@ -35,47 +43,40 @@ interface UserMapClientProps {
   allTags: string[];
   trips: Array<{ id: string; title: string }>;
   currentUserId: string | null;
+  currentUserProfile: { avatar_url: string | null; display_name: string; username: string } | null;
   isOwnMap: boolean;
   initialFollowing: boolean;
 }
 
-export function UserMapClient({ profile, pins, allTags, trips, currentUserId, isOwnMap, initialFollowing }: UserMapClientProps) {
+export function UserMapClient({
+  profile, pins, allTags, trips,
+  currentUserId, currentUserProfile,
+  isOwnMap, initialFollowing,
+}: UserMapClientProps) {
   const [mapMode, setMapMode] = useState<MapMode>('3d');
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [selectedTripId, setSelectedTripId] = useState<string | null>(null);
   const [panelView, setPanelView] = useState<PanelView>({ type: 'feed' });
+  const [, startSignOut] = useTransition();
 
-  // 필터 적용
   const filteredPins = useMemo(() => {
     return pins.filter((p) => {
       if (selectedTag && !p.tags.includes(selectedTag)) return false;
-      if (selectedTripId && p.trip?.id !== selectedTripId) return false;
+      if (selectedTripId && p.tripId !== selectedTripId) return false;
       return true;
     });
   }, [pins, selectedTag, selectedTripId]);
 
-  // lat/lng 있는 핀만 마커로 사용
   const markers: GlobePinMarker[] = filteredPins
     .filter((p): p is PinData & { lat: number; lng: number } => p.lat != null && p.lng != null)
-    .map((p) => ({
-      id: p.id,
-      title: p.title,
-      lat: p.lat,
-      lng: p.lng,
-      visitedAt: p.visited_at,
-    }));
+    .map((p) => ({ id: p.id, title: p.title, lat: p.lat, lng: p.lng, visitedAt: p.visited_at }));
 
   const handlePinClick = useCallback((pinId: string) => {
     setPanelView({ type: 'pin-detail', pinId });
   }, []);
-
-  const handleBack = useCallback(() => {
-    setPanelView({ type: 'feed' });
-  }, []);
-
-  const handleClose = useCallback(() => {
-    setPanelView({ type: 'closed' });
-  }, []);
+  const handleBack = useCallback(() => setPanelView({ type: 'feed' }), []);
+  const handleClose = useCallback(() => setPanelView({ type: 'closed' }), []);
+  const handleOpenPanel = useCallback(() => setPanelView({ type: 'feed' }), []);
 
   const isListView = panelView.type === 'feed';
 
@@ -97,7 +98,7 @@ export function UserMapClient({ profile, pins, allTags, trips, currentUserId, is
         {isListView && (
           <div className="pb-6">
             {/* 프로필 헤더 */}
-            <div className="relative bg-gradient-to-br from-zinc-900 to-zinc-700 px-5 pt-5 pb-4">
+            <div className="bg-gradient-to-br from-zinc-900 to-zinc-700 px-5 pt-5 pb-4">
               <div className="flex items-start gap-3">
                 <div className="h-14 w-14 rounded-2xl bg-zinc-600 overflow-hidden ring-2 ring-white/20 shrink-0">
                   {profile.avatar_url ? (
@@ -113,10 +114,14 @@ export function UserMapClient({ profile, pins, allTags, trips, currentUserId, is
                   <p className="text-lg font-bold text-white leading-tight truncate">{profile.display_name}</p>
                   <p className="text-xs text-zinc-400">@{profile.username}</p>
                 </div>
-                {/* 팔로우 버튼 — 타인 지도이고 로그인된 경우 */}
+                {/* 팔로우 버튼 — 타인 지도 + 로그인 상태 */}
                 {!isOwnMap && currentUserId && (
                   <div className="pt-1 shrink-0">
-                    <FollowButton targetUserId={profile.id} initialFollowing={initialFollowing} />
+                    <FollowButton
+                      targetUserId={profile.id}
+                      initialFollowing={initialFollowing}
+                      variant="ghost-dark"
+                    />
                   </div>
                 )}
               </div>
@@ -138,7 +143,7 @@ export function UserMapClient({ profile, pins, allTags, trips, currentUserId, is
                         key={tag}
                         onClick={() => setSelectedTag(selectedTag === tag ? null : tag)}
                         className={cn(
-                          'rounded-full px-2.5 py-1 text-xs font-medium transition-colors',
+                          'rounded-full px-2.5 py-1 text-xs font-medium transition-colors cursor-pointer',
                           selectedTag === tag
                             ? 'bg-zinc-900 text-white'
                             : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200',
@@ -161,7 +166,7 @@ export function UserMapClient({ profile, pins, allTags, trips, currentUserId, is
                         key={trip.id}
                         onClick={() => setSelectedTripId(selectedTripId === trip.id ? null : trip.id)}
                         className={cn(
-                          'rounded-full px-2.5 py-1 text-xs font-medium transition-colors',
+                          'rounded-full px-2.5 py-1 text-xs font-medium transition-colors cursor-pointer',
                           selectedTripId === trip.id
                             ? 'bg-zinc-900 text-white'
                             : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200',
@@ -174,12 +179,11 @@ export function UserMapClient({ profile, pins, allTags, trips, currentUserId, is
                 </div>
               )}
 
-              {/* 활성 필터 초기화 */}
               {(selectedTag || selectedTripId) && (
                 <div className="px-4">
                   <button
                     onClick={() => { setSelectedTag(null); setSelectedTripId(null); }}
-                    className="flex items-center gap-1 text-xs text-zinc-400 hover:text-zinc-600"
+                    className="flex items-center gap-1 text-xs text-zinc-400 hover:text-zinc-600 cursor-pointer"
                   >
                     <X className="h-3 w-3" />필터 초기화
                   </button>
@@ -197,7 +201,7 @@ export function UserMapClient({ profile, pins, allTags, trips, currentUserId, is
                     <button
                       key={pin.id}
                       onClick={() => handlePinClick(pin.id)}
-                      className="w-full flex items-start gap-3 p-2.5 rounded-xl hover:bg-zinc-50 text-left transition-colors"
+                      className="w-full flex items-start gap-3 p-2.5 rounded-xl hover:bg-zinc-50 text-left transition-colors cursor-pointer"
                     >
                       <MapPin className="h-4 w-4 text-red-400 shrink-0 mt-0.5" />
                       <div className="min-w-0">
@@ -220,14 +224,11 @@ export function UserMapClient({ profile, pins, allTags, trips, currentUserId, is
         )}
 
         {panelView.type === 'pin-detail' && (
-          <PanelPinDetail
-            pinId={panelView.pinId}
-            currentUserId={currentUserId}
-          />
+          <PanelPinDetail pinId={panelView.pinId} currentUserId={currentUserId} />
         )}
       </SidePanel>
 
-      {/* 지도 위 플로팅 유저 배지 — 중앙 하단 */}
+      {/* 지도 위 플로팅 유저 배지 */}
       <div className="absolute bottom-20 left-1/2 -translate-x-1/2 z-10 sm:bottom-6 pointer-events-none">
         <div className="flex items-center gap-2 bg-black/50 backdrop-blur-md text-white px-3.5 py-2 rounded-full shadow-lg border border-white/10">
           {profile.avatar_url ? (
@@ -247,16 +248,63 @@ export function UserMapClient({ profile, pins, allTags, trips, currentUserId, is
         <MapModeToggle mode={mapMode} onChange={setMapMode} />
       </div>
 
-      {/* 뒤로가기 버튼 */}
-      <div className="absolute top-4 left-4 z-10">
-        <Link
-          href="/"
-          className="flex items-center gap-1.5 px-3 py-2 bg-white/90 backdrop-blur-sm rounded-full shadow-md hover:bg-white text-sm font-medium text-zinc-700 transition-colors cursor-pointer"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          지도
-        </Link>
+      {/* 좌측 상단 — 패널 닫혔을 때 열기 버튼 / 뒤로가기 */}
+      <div className="absolute top-4 left-4 z-10 flex items-center gap-2">
+        {panelView.type === 'closed' ? (
+          <button
+            onClick={handleOpenPanel}
+            className="p-2.5 bg-white/90 backdrop-blur-sm rounded-full shadow-md hover:bg-white transition-colors cursor-pointer"
+          >
+            <Menu className="h-5 w-5 text-zinc-700" />
+          </button>
+        ) : (
+          <Link
+            href="/"
+            className="flex items-center gap-1.5 px-3 py-2 bg-white/90 backdrop-blur-sm rounded-full shadow-md hover:bg-white text-sm font-medium text-zinc-700 transition-colors cursor-pointer"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            지도
+          </Link>
+        )}
       </div>
+
+      {/* 우측 상단 — 로그인 유저 메뉴 */}
+      {currentUserProfile && (
+        <div className="absolute top-4 right-4 z-10">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="h-9 w-9 rounded-full bg-zinc-200 overflow-hidden shadow-md cursor-pointer hover:ring-2 hover:ring-white/80 transition-all">
+                {currentUserProfile.avatar_url ? (
+                  <Image src={currentUserProfile.avatar_url} alt={currentUserProfile.display_name} width={36} height={36} />
+                ) : (
+                  <span className="flex items-center justify-center h-full text-sm font-bold text-zinc-600">
+                    {currentUserProfile.display_name[0]}
+                  </span>
+                )}
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-44">
+              <DropdownMenuItem asChild>
+                <Link href={`/${currentUserProfile.username}/map`} className="cursor-pointer flex items-center gap-2">
+                  <Map className="h-4 w-4" />내 지도
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/settings" className="cursor-pointer flex items-center gap-2">
+                  <Settings className="h-4 w-4" />설정
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                className="cursor-pointer flex items-center gap-2 text-red-500 focus:text-red-500"
+                onClick={() => startSignOut(() => signOut())}
+              >
+                <LogOut className="h-4 w-4" />로그아웃
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      )}
     </div>
   );
 }

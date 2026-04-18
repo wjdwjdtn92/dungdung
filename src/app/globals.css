@@ -8,6 +8,10 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  /* shadcn popover/dropdown 배경 — 미정의 시 투명 렌더링 버그 방지 */
+  --color-popover: #ffffff;
+  --color-popover-foreground: #171717;
+  --color-border: #e4e4e7;
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
