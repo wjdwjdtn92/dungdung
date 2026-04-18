@@ -248,23 +248,22 @@ export function UserMapClient({
         <MapModeToggle mode={mapMode} onChange={setMapMode} />
       </div>
 
-      {/* 좌측 상단 — 패널 닫혔을 때 열기 버튼 / 뒤로가기 */}
+      {/* 좌측 상단 — 뒤로가기 + 패널 열기 */}
       <div className="absolute top-4 left-4 z-10 flex items-center gap-2">
-        {panelView.type === 'closed' ? (
+        <Link
+          href="/"
+          className="flex items-center gap-1.5 px-3 py-2 bg-white/90 backdrop-blur-sm rounded-full shadow-md hover:bg-white text-sm font-medium text-zinc-700 transition-colors cursor-pointer"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          지도
+        </Link>
+        {panelView.type === 'closed' && (
           <button
             onClick={handleOpenPanel}
             className="p-2.5 bg-white/90 backdrop-blur-sm rounded-full shadow-md hover:bg-white transition-colors cursor-pointer"
           >
             <Menu className="h-5 w-5 text-zinc-700" />
           </button>
-        ) : (
-          <Link
-            href="/"
-            className="flex items-center gap-1.5 px-3 py-2 bg-white/90 backdrop-blur-sm rounded-full shadow-md hover:bg-white text-sm font-medium text-zinc-700 transition-colors cursor-pointer"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            지도
-          </Link>
         )}
       </div>
 

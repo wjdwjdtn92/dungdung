@@ -98,9 +98,6 @@ export function MapClient({
     setPanelView({ type: 'pin-detail', pinId });
   }, []);
 
-  const handleAuthorClick = useCallback((username: string) => {
-    setPanelView({ type: 'user-profile', username });
-  }, []);
 
   const handleUserPinsLoaded = useCallback((markers: GlobePinMarker[]) => {
     setUserPinMarkers(markers);
@@ -174,7 +171,6 @@ export function MapClient({
           <PanelPinDetail
             pinId={panelView.pinId}
             currentUserId={currentUserId}
-            onAuthorClick={handleAuthorClick}
           />
         )}
 

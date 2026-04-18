@@ -28,7 +28,6 @@ interface CommentSectionProps {
   pinId: string;
   initialComments: CommentData[];
   currentUserId: string | null;
-  pinOwnerId: string;
 }
 
 function timeAgo(dateStr: string) {
@@ -47,7 +46,6 @@ export function CommentSection({
   pinId,
   initialComments,
   currentUserId,
-  pinOwnerId,
 }: CommentSectionProps) {
   const [comments, setComments] = useState(initialComments);
   const [body, setBody] = useState('');
@@ -89,7 +87,7 @@ export function CommentSection({
   }
 
   const canDelete = (comment: CommentData) =>
-    currentUserId === comment.user_id || currentUserId === pinOwnerId;
+    currentUserId === comment.user_id;
 
   return (
     <div className="space-y-4">

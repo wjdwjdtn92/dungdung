@@ -202,7 +202,6 @@ export default async function PinDetailPage({ params }: Props) {
             pinId={id}
             initialComments={comments}
             currentUserId={user?.id ?? null}
-            pinOwnerId={pin.user_id}
           />
         </div>
       </div>
