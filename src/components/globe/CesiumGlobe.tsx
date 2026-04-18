@@ -19,7 +19,7 @@ interface CesiumGlobeProps extends GlobeOptions {
 const CESIUM_VERSION = '1.140.0';
 const CESIUM_BASE =
   process.env.NODE_ENV === 'production'
-    ? `https://cesium.com/downloads/cesiumjs/releases/${CESIUM_VERSION}/Build/Cesium`
+    ? `https://cdn.jsdelivr.net/npm/cesium@${CESIUM_VERSION}/Build/Cesium`
     : '/cesium';
 
 /** Cesium JS + CSS를 한 번만 로드하는 싱글턴 Promise */
