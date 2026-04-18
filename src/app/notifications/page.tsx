@@ -1,5 +1,5 @@
 import { Bell } from 'lucide-react';
-import { getNotifications } from '@/lib/notifications/actions';
+import { getNotifications, markAllAsRead } from '@/lib/notifications/actions';
 import { NotificationList } from '@/components/notifications/NotificationList';
 import { AppHeader } from '@/components/layout/AppHeader';
 import type { Metadata } from 'next';
@@ -7,7 +7,10 @@ import type { Metadata } from 'next';
 export const metadata: Metadata = { title: '알림' };
 
 export default async function NotificationsPage() {
-  const notifications = await getNotifications();
+  const [notifications] = await Promise.all([
+    getNotifications(),
+    markAllAsRead(), // 페이지 진입 시 모두 읽음 처리
+  ]);
 
   return (
     <>

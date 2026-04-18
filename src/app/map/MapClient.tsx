@@ -15,6 +15,7 @@ import { PanelTabs, type TabType } from '@/components/map/PanelTabs';
 import { PinListItem, type PinListData } from '@/components/map/PinListItem';
 import { PanelPinDetail } from '@/components/map/PanelPinDetail';
 import { PanelUserProfile } from '@/components/map/PanelUserProfile';
+import { RealtimeNotifications } from '@/components/notifications/RealtimeNotifications';
 
 interface MapClientProps {
   myPins: GlobePinMarker[];
@@ -41,7 +42,7 @@ export function MapClient({
   exploreMarkers,
   currentUserId,
   user,
-  unreadCount,
+  unreadCount: initialUnreadCount,
 }: MapClientProps) {
   const isLoggedIn = !!user;
   const defaultTab: TabType = isLoggedIn ? 'my-pins' : 'explore';
@@ -112,12 +113,18 @@ export function MapClient({
   }, [activeTab]);
 
   const openLoginModal = useUIStore((s) => s.openLoginModal);
+  const unreadCount = useUIStore((s) => s.unreadCount);
 
   const isListView =
     panelView.type === 'feed' || panelView.type === 'explore' || panelView.type === 'my-pins';
 
   return (
     <div className="fixed inset-0 bg-zinc-950">
+      {/* 알림 Realtime 구독 (로그인 사용자만) */}
+      {user && currentUserId && (
+        <RealtimeNotifications userId={currentUserId} initialUnreadCount={initialUnreadCount} />
+      )}
+
       {/* 지도 */}
       {mapMode === '3d' ? (
         <DynamicGlobe pins={displayPins} onPinClick={handlePinClick} className="absolute inset-0" />

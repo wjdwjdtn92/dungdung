@@ -7,6 +7,7 @@ import { Heart, MessageCircle, UserPlus } from 'lucide-react';
 import { markAllAsRead, type NotificationItem } from '@/lib/notifications/actions';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { useUIStore } from '@/store/ui';
 
 interface NotificationListProps {
   notifications: NotificationItem[];
@@ -33,10 +34,12 @@ function timeAgo(dateStr: string) {
 export function NotificationList({ notifications }: NotificationListProps) {
   const [isPending, startTransition] = useTransition();
   const hasUnread = notifications.some((n) => !n.read_at);
+  const clearUnread = useUIStore((s) => s.clearUnread);
 
   function handleMarkAll() {
     startTransition(async () => {
       await markAllAsRead();
+      clearUnread();
       window.location.reload();
     });
   }

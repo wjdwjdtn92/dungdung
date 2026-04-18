@@ -15,6 +15,10 @@ interface UIState {
   isLoginModalOpen: boolean;
   openLoginModal: () => void;
   closeLoginModal: () => void;
+  unreadCount: number;
+  setUnreadCount: (count: number) => void;
+  incrementUnread: () => void;
+  clearUnread: () => void;
 }
 
 export const useUIStore = create<UIState>((set) => ({
@@ -29,4 +33,8 @@ export const useUIStore = create<UIState>((set) => ({
   isLoginModalOpen: false,
   openLoginModal: () => set({ isLoginModalOpen: true }),
   closeLoginModal: () => set({ isLoginModalOpen: false }),
+  unreadCount: 0,
+  setUnreadCount: (count) => set({ unreadCount: count }),
+  incrementUnread: () => set((s) => ({ unreadCount: s.unreadCount + 1 })),
+  clearUnread: () => set({ unreadCount: 0 }),
 }));
