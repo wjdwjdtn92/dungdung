@@ -1,6 +1,5 @@
 import type { NextConfig } from 'next';
 import path from 'path';
-import webpack from 'webpack';
 
 const nextConfig: NextConfig = {
   // 로컬 네트워크에서 모바일 테스트용 — 개발 환경 전용
@@ -21,23 +20,13 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  webpack(config, { isServer }) {
-    if (!isServer) {
-      // CesiumJS: CESIUM_BASE_URL을 /cesium으로 지정 (public/cesium에 static 파일 위치)
-      config.plugins.push(
-        new webpack.DefinePlugin({
-          CESIUM_BASE_URL: JSON.stringify('/cesium'),
-        }),
-      );
-    }
-
-    // CesiumJS Worker 파일을 번들에서 제외 — 외부 스크립트로 로드
-    config.module.rules.push({
-      test: /\.js$/,
-      include: /cesium/,
-      use: { loader: 'source-map-loader' },
-      enforce: 'pre',
-    });
+  webpack(config) {
+    // CesiumJS는 /public/cesium/Cesium.js를 런타임 script 태그로 로드 (번들링 제외)
+    // webpack externals로 등록해 import('cesium') 참조를 글로벌 Cesium으로 연결
+    config.externals = [
+      ...(Array.isArray(config.externals) ? config.externals : config.externals ? [config.externals] : []),
+      { cesium: 'Cesium' },
+    ];
 
     config.resolve.fallback = {
       ...config.resolve.fallback,

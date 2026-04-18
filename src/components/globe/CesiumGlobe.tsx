@@ -3,14 +3,51 @@
 /**
  * CesiumJS 3D 지구 컴포넌트 (CSR 전용)
  * DynamicGlobe에서 next/dynamic { ssr: false }로 로드됨
+ *
+ * webpack 번들링 대신 /public/cesium/Cesium.js를 런타임 script 태그로 로드.
+ * 이유: CesiumJS 소스의 octal escape sequence가 webpack strict mode 번들에서 SyntaxError 유발
  */
 import { useEffect, useRef } from 'react';
-import 'cesium/Build/Cesium/Widgets/widgets.css';
 import type { GlobeOptions, GlobePinMarker } from './GlobeEngine';
 
 interface CesiumGlobeProps extends GlobeOptions {
   pins?: GlobePinMarker[];
   className?: string;
+}
+
+/** /cesium/Cesium.js + CSS를 한 번만 로드하는 싱글턴 Promise */
+let cesiumLoadPromise: Promise<typeof import('cesium')> | null = null;
+
+function loadCesium(): Promise<typeof import('cesium')> {
+  if (cesiumLoadPromise) return cesiumLoadPromise;
+
+  cesiumLoadPromise = new Promise((resolve, reject) => {
+    // CSS
+    if (!document.querySelector('link[href="/cesium/Widgets/widgets.css"]')) {
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = '/cesium/Widgets/widgets.css';
+      document.head.appendChild(link);
+    }
+
+    // 이미 로드된 경우
+    if ((window as // eslint-disable-next-line @typescript-eslint/no-explicit-any
+any).Cesium) {
+      resolve((window as // eslint-disable-next-line @typescript-eslint/no-explicit-any
+any).Cesium as typeof import('cesium'));
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = '/cesium/Cesium.js';
+    script.async = true;
+    script.onload = () => resolve((window as // eslint-disable-next-line @typescript-eslint/no-explicit-any
+any).Cesium as typeof import('cesium'));
+    script.onerror = () => reject(new Error('Failed to load /cesium/Cesium.js'));
+    document.head.appendChild(script);
+  });
+
+  return cesiumLoadPromise;
 }
 
 export function CesiumGlobe({ pins = [], onPinClick, onMapClick, className }: CesiumGlobeProps) {
@@ -22,22 +59,17 @@ export function CesiumGlobe({ pins = [], onPinClick, onMapClick, className }: Ce
     const container = containerRef.current;
     if (!container) return;
 
-    // React Strict Mode 이중 마운트 대비 — 컨테이너 초기화
     container.innerHTML = '';
     viewerRef.current = null;
 
     let destroyed = false;
 
     async function init() {
-      // Turbopack dev 모드에서 webpack DefinePlugin 미적용 → 직접 주입
-      (window as unknown as Record<string, unknown>).CESIUM_BASE_URL = '/cesium';
-
-      const Cesium = await import('cesium');
+      const Cesium = await loadCesium();
 
       const ionToken = process.env.NEXT_PUBLIC_CESIUM_ION_TOKEN;
       if (ionToken) Cesium.Ion.defaultAccessToken = ionToken;
 
-      // 비동기 완료 전에 cleanup이 실행된 경우 중단
       if (destroyed || !containerRef.current) return;
 
       const viewer = new Cesium.Viewer(containerRef.current, {
@@ -62,12 +94,10 @@ export function CesiumGlobe({ pins = [], onPinClick, onMapClick, className }: Ce
       viewerRef.current = viewer;
       viewer.scene.globe.enableLighting = true;
 
-      // 컨테이너 크기를 다음 프레임에서 읽어 canvas 크기 반영 (300×150 기본값 방지)
       requestAnimationFrame(() => {
         if (!viewer.isDestroyed()) viewer.resize();
       });
 
-      // 창/컨테이너 크기 변경 시 자동 resize
       const ro = new ResizeObserver(() => {
         if (!viewer.isDestroyed()) viewer.resize();
       });
@@ -76,7 +106,6 @@ export function CesiumGlobe({ pins = [], onPinClick, onMapClick, className }: Ce
 
       addPins(Cesium, viewer, pins, onPinClick);
 
-      // 지도 빈 영역 클릭
       if (onMapClick) {
         const mapHandler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
         mapHandler.setInputAction((e: { position: import('cesium').Cartesian2 }) => {
@@ -91,7 +120,6 @@ export function CesiumGlobe({ pins = [], onPinClick, onMapClick, className }: Ce
         }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
       }
 
-      // 핀 클릭 — instanceof 대신 duck typing (동적 import 환경에서 더 안정적)
       if (onPinClick) {
         viewer.screenSpaceEventHandler.setInputAction(
           (e: { position: import('cesium').Cartesian2 }) => {
@@ -121,13 +149,12 @@ export function CesiumGlobe({ pins = [], onPinClick, onMapClick, className }: Ce
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // 핀 목록 변경 시 마커 재렌더
   useEffect(() => {
     const viewer = viewerRef.current;
     if (!viewer || viewer.isDestroyed()) return;
 
     async function updatePins() {
-      const Cesium = await import('cesium');
+      const Cesium = await loadCesium();
       viewer!.entities.removeAll();
       addPins(Cesium, viewer!, pins, onPinClick);
     }
@@ -155,7 +182,6 @@ function addPins(
         width: 28,
         height: 28,
         verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
-        // disableDepthTestDistance 미설정 → 지구 뒤편 핀은 depth test에 의해 숨겨짐
       },
       label: {
         text: pin.title,
