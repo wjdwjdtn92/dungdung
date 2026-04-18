@@ -31,8 +31,8 @@ export default async function UserMapPage({ params }: Props) {
 
   if (!profile) notFound();
 
-  // 공개 핀 + 태그 + 트립 병렬 조회
-  const [{ data: pinsRaw }, { data: tripsRaw }] = await Promise.all([
+  // 공개 핀 + 태그 + 트립 + 팔로우 상태 병렬 조회
+  const [{ data: pinsRaw }, { data: tripsRaw }, followCheck] = await Promise.all([
     supabase
       .from('pins')
       .select(`id, title, lat, lng, visited_at, place_name,
@@ -47,6 +47,9 @@ export default async function UserMapPage({ params }: Props) {
       .select('id, title')
       .eq('user_id', profile.id)
       .order('created_at', { ascending: false }),
+    user && user.id !== profile.id
+      ? supabase.from('follows').select('follower_id').eq('follower_id', user.id).eq('following_id', profile.id).maybeSingle()
+      : Promise.resolve({ data: null }),
   ]);
 
   const pins = (pinsRaw ?? []).map((p) => {
@@ -70,6 +73,9 @@ export default async function UserMapPage({ params }: Props) {
   const allTags = Array.from(new Set(pins.flatMap((p) => p.tags))).sort();
   const trips = tripsRaw ?? [];
 
+  const isOwnMap = user?.id === profile.id;
+  const initialFollowing = !isOwnMap && !!followCheck?.data;
+
   return (
     <UserMapClient
       profile={profile}
@@ -77,6 +83,8 @@ export default async function UserMapPage({ params }: Props) {
       allTags={allTags}
       trips={trips}
       currentUserId={user?.id ?? null}
+      isOwnMap={isOwnMap}
+      initialFollowing={initialFollowing}
     />
   );
 }

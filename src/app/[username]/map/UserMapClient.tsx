@@ -9,6 +9,7 @@ import { DynamicLeaflet } from '@/components/globe/DynamicLeaflet';
 import { MapModeToggle, type MapMode } from '@/components/map/MapModeToggle';
 import { SidePanel, type PanelView } from '@/components/map/SidePanel';
 import { PanelPinDetail } from '@/components/map/PanelPinDetail';
+import { FollowButton } from '@/components/social/FollowButton';
 import { cn } from '@/lib/utils';
 import type { GlobePinMarker } from '@/components/globe/GlobeEngine';
 
@@ -34,9 +35,11 @@ interface UserMapClientProps {
   allTags: string[];
   trips: Array<{ id: string; title: string }>;
   currentUserId: string | null;
+  isOwnMap: boolean;
+  initialFollowing: boolean;
 }
 
-export function UserMapClient({ profile, pins, allTags, trips, currentUserId }: UserMapClientProps) {
+export function UserMapClient({ profile, pins, allTags, trips, currentUserId, isOwnMap, initialFollowing }: UserMapClientProps) {
   const [mapMode, setMapMode] = useState<MapMode>('3d');
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [selectedTripId, setSelectedTripId] = useState<string | null>(null);
@@ -93,9 +96,9 @@ export function UserMapClient({ profile, pins, allTags, trips, currentUserId }: 
       >
         {isListView && (
           <div className="pb-6">
-            {/* 프로필 헤더 — 트렌디한 배너 스타일 */}
+            {/* 프로필 헤더 */}
             <div className="relative bg-gradient-to-br from-zinc-900 to-zinc-700 px-5 pt-5 pb-4">
-              <div className="flex items-end gap-3">
+              <div className="flex items-start gap-3">
                 <div className="h-14 w-14 rounded-2xl bg-zinc-600 overflow-hidden ring-2 ring-white/20 shrink-0">
                   {profile.avatar_url ? (
                     <Image src={profile.avatar_url} alt={profile.display_name} width={56} height={56} className="object-cover" />
@@ -105,13 +108,17 @@ export function UserMapClient({ profile, pins, allTags, trips, currentUserId }: 
                     </div>
                   )}
                 </div>
-                <div className="pb-0.5">
-                  <p className="text-[11px] font-medium text-zinc-400 uppercase tracking-widest">
-                    {currentUserId === profile.id ? '✦ 내 여행 지도' : '여행 지도'}
-                  </p>
-                  <p className="text-lg font-bold text-white leading-tight">{profile.display_name}</p>
+                <div className="flex-1 min-w-0 pt-0.5">
+                  <p className="text-[11px] font-medium text-zinc-400 uppercase tracking-widest">여행 지도</p>
+                  <p className="text-lg font-bold text-white leading-tight truncate">{profile.display_name}</p>
                   <p className="text-xs text-zinc-400">@{profile.username}</p>
                 </div>
+                {/* 팔로우 버튼 — 타인 지도이고 로그인된 경우 */}
+                {!isOwnMap && currentUserId && (
+                  <div className="pt-1 shrink-0">
+                    <FollowButton targetUserId={profile.id} initialFollowing={initialFollowing} />
+                  </div>
+                )}
               </div>
               <div className="mt-3 flex items-center gap-3 text-xs text-zinc-400">
                 <span><strong className="text-white">{filteredPins.length}</strong> 핀</span>
@@ -220,6 +227,21 @@ export function UserMapClient({ profile, pins, allTags, trips, currentUserId }: 
         )}
       </SidePanel>
 
+      {/* 지도 위 플로팅 유저 배지 — 중앙 하단 */}
+      <div className="absolute bottom-20 left-1/2 -translate-x-1/2 z-10 sm:bottom-6 pointer-events-none">
+        <div className="flex items-center gap-2 bg-black/50 backdrop-blur-md text-white px-3.5 py-2 rounded-full shadow-lg border border-white/10">
+          {profile.avatar_url ? (
+            <Image src={profile.avatar_url} alt={profile.display_name} width={22} height={22} className="rounded-full ring-1 ring-white/30" />
+          ) : (
+            <div className="h-[22px] w-[22px] rounded-full bg-zinc-600 flex items-center justify-center text-[10px] font-bold">
+              {profile.display_name[0]}
+            </div>
+          )}
+          <span className="text-sm font-semibold">{profile.display_name}</span>
+          <span className="text-xs text-white/60">의 지도</span>
+        </div>
+      </div>
+
       {/* 3D/2D 토글 */}
       <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 sm:bottom-auto sm:top-4 sm:left-auto sm:right-1/2 sm:translate-x-1/2">
         <MapModeToggle mode={mapMode} onChange={setMapMode} />
@@ -229,7 +251,7 @@ export function UserMapClient({ profile, pins, allTags, trips, currentUserId }: 
       <div className="absolute top-4 left-4 z-10">
         <Link
           href="/"
-          className="flex items-center gap-1.5 px-3 py-2 bg-white/90 backdrop-blur-sm rounded-full shadow-md hover:bg-white text-sm font-medium text-zinc-700 transition-colors"
+          className="flex items-center gap-1.5 px-3 py-2 bg-white/90 backdrop-blur-sm rounded-full shadow-md hover:bg-white text-sm font-medium text-zinc-700 transition-colors cursor-pointer"
         >
           <ArrowLeft className="h-4 w-4" />
           지도

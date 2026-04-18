@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition } from 'react';
 import Image from 'next/image';
-import { MapPin, ExternalLink } from 'lucide-react';
+import { MapPin, ExternalLink, Pencil } from 'lucide-react';
 import Link from 'next/link';
 import { getPinDetail, type PinDetail } from '@/lib/pins/queries';
 import { LikeButton } from '@/components/pins/LikeButton';
@@ -68,16 +68,27 @@ export function PanelPinDetail({ pinId, currentUserId, onAuthorClick }: PanelPin
       )}
 
       <div className="px-4 space-y-4 pb-6">
-        {/* 제목 + 링크 */}
+        {/* 제목 + 액션 버튼 */}
         <div className="flex items-start justify-between gap-2">
           <h2 className="text-lg font-bold text-zinc-900">{pin.title}</h2>
-          <Link
-            href={`/pins/${pin.id}`}
-            className="p-1 text-zinc-400 hover:text-zinc-600 shrink-0"
-            title="전체 페이지로 보기"
-          >
-            <ExternalLink className="h-4 w-4" />
-          </Link>
+          <div className="flex items-center gap-1 shrink-0">
+            {currentUserId === pin.user_id && (
+              <Link
+                href={`/pins/${pin.id}/edit`}
+                className="p-1.5 text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 rounded-lg transition-colors cursor-pointer"
+                title="수정"
+              >
+                <Pencil className="h-4 w-4" />
+              </Link>
+            )}
+            <Link
+              href={`/pins/${pin.id}`}
+              className="p-1.5 text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 rounded-lg transition-colors cursor-pointer"
+              title="전체 페이지로 보기"
+            >
+              <ExternalLink className="h-4 w-4" />
+            </Link>
+          </div>
         </div>
 
         {/* 장소 */}
@@ -102,24 +113,19 @@ export function PanelPinDetail({ pinId, currentUserId, onAuthorClick }: PanelPin
 
         {/* 작성자 + 좋아요 */}
         <div className="flex items-center justify-between pt-2 border-t border-zinc-100">
-          {pin.author && (() => {
-            const isOwn = currentUserId === pin.user_id;
-            return (
-              <button
-                onClick={() => onAuthorClick?.(pin.author!.username)}
-                className="flex items-center gap-2 hover:opacity-80 cursor-pointer"
-              >
-                <div className="h-7 w-7 rounded-full bg-zinc-200 overflow-hidden">
-                  {pin.author.avatar_url && (
-                    <Image src={pin.author.avatar_url} alt={pin.author.display_name} width={28} height={28} />
-                  )}
-                </div>
-                <span className={isOwn ? 'text-sm font-medium text-blue-600' : 'text-sm text-zinc-600'}>
-                  {isOwn ? '나' : pin.author.display_name}
-                </span>
-              </button>
-            );
-          })()}
+          {pin.author && (
+            <button
+              onClick={() => onAuthorClick?.(pin.author!.username)}
+              className="flex items-center gap-2 hover:opacity-80 cursor-pointer"
+            >
+              <div className="h-7 w-7 rounded-full bg-zinc-200 overflow-hidden">
+                {pin.author.avatar_url && (
+                  <Image src={pin.author.avatar_url} alt={pin.author.display_name} width={28} height={28} />
+                )}
+              </div>
+              <span className="text-sm text-zinc-600">{pin.author.display_name}</span>
+            </button>
+          )}
           <LikeButton pinId={pin.id} initialLiked={pin.liked} initialCount={pin.like_count} currentUserId={currentUserId} />
         </div>
 

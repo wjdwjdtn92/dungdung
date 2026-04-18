@@ -8,7 +8,6 @@ import { createComment, deleteComment } from '@/lib/social/actions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useUIStore } from '@/store/ui';
-import { cn } from '@/lib/utils';
 
 interface CommentAuthor {
   id: string;
@@ -99,11 +98,10 @@ export function CommentSection({
       {comments.length > 0 && (
         <div className="space-y-3">
           {comments.map((comment) => {
-            const isOwn = currentUserId === comment.user_id;
             const username = comment.author?.username;
             return (
-              <div key={comment.id} className={cn('flex gap-2.5 group', isOwn && 'flex-row-reverse')}>
-                {/* 아바타 */}
+              <div key={comment.id} className="flex gap-2.5 group">
+                {/* 아바타 — 클릭 시 유저 지도로 이동 */}
                 {username ? (
                   <Link href={`/${username}/map`} className="shrink-0 mt-0.5 cursor-pointer">
                     <div className="h-7 w-7 rounded-full bg-zinc-200 overflow-hidden">
@@ -116,12 +114,11 @@ export function CommentSection({
                   <div className="h-7 w-7 rounded-full bg-zinc-200 overflow-hidden shrink-0 mt-0.5" />
                 )}
 
-                {/* 말풍선 */}
-                <div className={cn('flex-1 min-w-0', isOwn && 'flex flex-col items-end')}>
+                <div className="flex-1 min-w-0">
                   <div className="flex items-baseline gap-2">
                     {username ? (
-                      <Link href={`/${username}/map`} className={cn('text-sm font-medium cursor-pointer hover:underline', isOwn ? 'text-blue-600' : 'text-zinc-800')}>
-                        {isOwn ? '나' : (comment.author?.display_name ?? '알 수 없음')}
+                      <Link href={`/${username}/map`} className="text-sm font-medium text-zinc-800 cursor-pointer hover:underline">
+                        {comment.author?.display_name ?? '알 수 없음'}
                       </Link>
                     ) : (
                       <span className="text-sm font-medium text-zinc-800">{comment.author?.display_name ?? '알 수 없음'}</span>
@@ -136,7 +133,7 @@ export function CommentSection({
                       </button>
                     )}
                   </div>
-                  <p className={cn('text-sm leading-relaxed', isOwn ? 'text-zinc-700' : 'text-zinc-600')}>{comment.body}</p>
+                  <p className="text-sm text-zinc-600 leading-relaxed">{comment.body}</p>
                 </div>
               </div>
             );
